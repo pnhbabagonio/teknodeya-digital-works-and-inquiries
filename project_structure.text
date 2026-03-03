@@ -1,20 +1,79 @@
+- .env.example
 - .gitignore
 - app
+  - admin
+    - login
+      - page.tsx
+    - page.tsx
   - favicon.ico
   - globals.css
+  - inquiry
+    - page.tsx
   - layout.tsx
   - page.tsx
+  - portfolio
+    - page.tsx
+  - services
+    - page.tsx
+- components
+  - admin
+    - dashboard.tsx
+    - inquiries-table.tsx
+    - inquiry-modal.tsx
+  - forms
+    - inquiry-form.tsx
+    - login-form.tsx
+  - layout
+    - footer.tsx
+    - navbar.tsx
+  - providers.tsx
+  - sections
+    - cta-section.tsx
+    - hero-section.tsx
+    - portfolio-teaser.tsx
+    - services-teaser.tsx
+    - testimonials.tsx
+    - why-teknodeya.tsx
+  - ui
+    - avatar.tsx
+    - badge.tsx
+    - button.tsx
+    - calendar.tsx
+    - card.tsx
+    - dialog.tsx
+    - dropdown-menu.tsx
+    - input.tsx
+    - label.tsx
+    - popover.tsx
+    - select.tsx
+    - separator.tsx
+    - table.tsx
+    - textarea.tsx
 - eslint.config.mjs
+- lib
+  - supabase
+    - client.ts
+    - middleware.ts
+    - server.ts
+  - utils.ts
+  - validations
+    - auth.ts
+    - inquiry.ts
+- middleware.ts
 - next-env.d.ts
 - next.config.ts
 - package-lock.json
 - package.json
 - postcss.config.mjs
 - public
+  - assets
+    - official-logov2.png
+    - text-logo.png
   - file.svg
   - globe.svg
   - next.svg
   - vercel.svg
   - window.svg
 - README.md
+- tailwind.config.ts
 - tsconfig.json

@@ -2,8 +2,15 @@ import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   images: {
-    domains: ['your-supabase-project.supabase.co'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'your-project-id.supabase.co',
+        pathname: '/storage/v1/object/public/**',
+      },
+    ],
   },
+
   experimental: {
     serverActions: {
       allowedOrigins: ['localhost:3000'],
