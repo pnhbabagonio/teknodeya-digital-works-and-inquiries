@@ -1,10 +1,16 @@
+- .env
 - .env.example
 - .gitignore
 - app
   - admin
+    - inquiries
+      - page.tsx
+    - layout.tsx
     - login
       - page.tsx
     - page.tsx
+    - settings
+      - page.tsx
   - favicon.ico
   - globals.css
   - inquiry
@@ -20,12 +26,20 @@
     - dashboard.tsx
     - inquiries-table.tsx
     - inquiry-modal.tsx
+    - notifications-popover.tsx
+    - settings-form.tsx
   - forms
     - inquiry-form.tsx
     - login-form.tsx
   - layout
+    - admin-layout-wrapper.tsx
     - footer.tsx
     - navbar.tsx
+  - portfolio
+    - portfolio-card-skeleton.tsx
+    - portfolio-filter.tsx
+    - portfolio-grid.tsx
+    - portfolio-modal.tsx
   - providers.tsx
   - sections
     - cta-section.tsx
@@ -34,6 +48,11 @@
     - services-teaser.tsx
     - testimonials.tsx
     - why-teknodeya.tsx
+  - services
+    - service-card.tsx
+    - service-detail-modal.tsx
+    - service-skeleton.tsx
+    - services-grid.tsx
   - ui
     - avatar.tsx
     - badge.tsx
@@ -47,7 +66,9 @@
     - popover.tsx
     - select.tsx
     - separator.tsx
+    - switch.tsx
     - table.tsx
+    - tabs.tsx
     - textarea.tsx
 - eslint.config.mjs
 - lib

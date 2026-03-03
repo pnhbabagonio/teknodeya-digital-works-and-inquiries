@@ -49,6 +49,9 @@ export default function AdminLayout({
   const router = useRouter()
   const supabase = createClient()
 
+  // Check if current path is login page
+  const isLoginPage = pathname === '/admin/login'
+
   const handleLogout = async () => {
     try {
       const { error } = await supabase.auth.signOut()
@@ -63,10 +66,14 @@ export default function AdminLayout({
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    // Implement search functionality
     if (searchQuery.trim()) {
       router.push(`/admin/inquiries?search=${encodeURIComponent(searchQuery)}`)
     }
+  }
+
+  // If it's the login page, render without the admin layout
+  if (isLoginPage) {
+    return <>{children}</>
   }
 
   return (
@@ -79,24 +86,24 @@ export default function AdminLayout({
         )}
       >
         <div className="flex flex-col h-full">
-        {/* Logo */}
-        <div className={cn(
-          'p-4 border-b border-white/5 flex items-center',
-          collapsed ? 'justify-center' : 'justify-center' // Changed to justify-center for both states
-        )}>
-          <Link href="/admin" className="inline-block">
-            <Image
-              src={collapsed ? "/assets/official-logov2.png" : "/assets/text-logo.png"}
-              alt="Teknodeya"
-              width={collapsed ? 40 : 150}
-              height={collapsed ? 40 : 60}
-              className={cn(
-                'transition-all duration-300',
-                collapsed ? 'h-10 w-13' : 'h-13 w-auto'
-              )}
-            />
-          </Link>
-        </div>
+          {/* Logo */}
+          <div className={cn(
+            'p-4 border-b border-white/5 flex items-center',
+            collapsed ? 'justify-center' : 'justify-center'
+          )}>
+            <Link href="/admin" className="inline-block">
+              <Image
+                src={collapsed ? "/assets/official-logov2.png" : "/assets/text-logo.png"}
+                alt="Teknodeya"
+                width={collapsed ? 40 : 150}
+                height={collapsed ? 40 : 60}
+                className={cn(
+                  'transition-all duration-300',
+                  collapsed ? 'h-10 w-13' : 'h-13 w-auto'
+                )}
+              />
+            </Link>
+          </div>
 
           {/* Navigation */}
           <nav className="flex-1 p-4">
