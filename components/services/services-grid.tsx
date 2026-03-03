@@ -3,7 +3,9 @@
 
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import Link from 'next/link'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Button } from '@/components/ui/button'
 import { ServiceCard } from './service-card'
 import { ServiceSkeleton } from './service-skeleton'
 import { createClient } from '@/lib/supabase/client'
@@ -16,9 +18,7 @@ import {
   Zap,
   Shield,
   Rocket,
-  Link,
 } from 'lucide-react'
-import { Button } from '../ui/button'
 
 interface Service {
   id: string

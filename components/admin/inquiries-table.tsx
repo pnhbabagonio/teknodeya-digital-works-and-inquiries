@@ -40,7 +40,7 @@ interface Inquiry {
   created_at: string
 }
 
-type SortField = 'created_at' | 'full_name' | 'status'
+type SortField = 'created_at' | 'full_name' | 'status' | 'reference_number'
 type SortOrder = 'asc' | 'desc'
 
 export function InquiriesTable() {
