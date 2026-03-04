@@ -125,10 +125,10 @@ export function ServicesGrid() {
 
   const getMockPriceRange = (category: string) => {
     const prices = {
-      'web-development': '$5,000 - $25,000',
-      'mobile-app': '$10,000 - $40,000',
-      'ui-ux-design': '$3,000 - $15,000',
-      'creative-design': '$1,000 - $8,000',
+      'web-development': '₱5,000 - ₱25,000',
+      'mobile-app': '₱10,000 - ₱40,000',
+      'ui-ux-design': '₱3,000 - ₱15,000',
+      'creative-design': '₱1,000 - ₱8,000',
     }
     return prices[category as keyof typeof prices] || 'Custom Quote'
   }

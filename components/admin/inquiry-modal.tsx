@@ -155,11 +155,11 @@ export function InquiryModal({ inquiry, open, onOpenChange, onUpdate }: InquiryM
   if (!inquiry) return null
 
   const budgetLabels: Record<string, string> = {
-    '<5000': 'Less than $5,000',
-    '5000-10000': '$5,000 - $10,000',
-    '10000-25000': '$10,000 - $25,000',
-    '25000-50000': '$25,000 - $50,000',
-    '>50000': 'More than $50,000',
+    '<5000': 'Less than ₱5,000',
+    '5000-10000': '₱5,000 - ₱10,000',
+    '10000-25000': '₱10,000 - ₱25,000',
+    '25000-50000': '₱25,000 - ₱50,000',
+    '>50000': 'More than ₱50,000',
     'not-specified': 'Not specified',
   }
 

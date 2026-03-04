@@ -1,3 +1,4 @@
+// app/page.tsx
 import { Metadata } from 'next'
 import { HeroSection } from '@/components/sections/hero-section'
 import { ServicesTeaser } from '@/components/sections/services-teaser'

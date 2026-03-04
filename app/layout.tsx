@@ -1,5 +1,4 @@
 // app/layout.tsx
-// Modified to conditionally render Navbar and Footer
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'

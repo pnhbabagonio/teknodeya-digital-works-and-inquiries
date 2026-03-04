@@ -38,11 +38,11 @@ const serviceOptions = [
 ]
 
 const budgetOptions = [
-  { value: '<5000', label: 'Less than $5,000' },
-  { value: '5000-10000', label: '$5,000 - $10,000' },
-  { value: '10000-25000', label: '$10,000 - $25,000' },
-  { value: '25000-50000', label: '$25,000 - $50,000' },
-  { value: '>50000', label: 'More than $50,000' },
+  { value: '<5000', label: 'Less than ₱5,000' },
+  { value: '5000-10000', label: '₱5,000 - ₱10,000' },
+  { value: '10000-25000', label: '₱10,000 - ₱25,000' },
+  { value: '25000-50000', label: '₱25,000 - ₱50,000' },
+  { value: '>50000', label: 'More than ₱50,000' },
   { value: 'not-specified', label: 'Not specified' },
 ]
 

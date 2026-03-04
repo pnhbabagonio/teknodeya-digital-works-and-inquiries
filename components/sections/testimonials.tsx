@@ -1,7 +1,7 @@
 // components/sections/testimonials.tsx
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight, Star } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
@@ -25,6 +25,9 @@ export function Testimonials() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [loading, setLoading] = useState(true)
   const [direction, setDirection] = useState(0)
+  const [height, setHeight] = useState(0)
+  const cardRef = useRef<HTMLDivElement>(null)
+  const intervalRef = useRef<NodeJS.Timeout>()
 
   useEffect(() => {
     async function loadTestimonials() {
@@ -44,20 +47,33 @@ export function Testimonials() {
     loadTestimonials()
   }, [])
 
+  // Update height when testimonial changes
+  useEffect(() => {
+    if (cardRef.current) {
+      setHeight(cardRef.current.offsetHeight)
+    }
+  }, [currentIndex])
+
   const slideVariants = {
     enter: (direction: number) => ({
-      x: direction > 0 ? 1000 : -1000,
+      x: direction > 0 ? 500 : -500,
       opacity: 0,
+      position: 'absolute' as const,
+      width: '100%',
     }),
     center: {
       zIndex: 1,
       x: 0,
       opacity: 1,
+      position: 'relative' as const,
+      width: '100%',
     },
     exit: (direction: number) => ({
       zIndex: 0,
-      x: direction < 0 ? 1000 : -1000,
+      x: direction < 0 ? 500 : -500,
       opacity: 0,
+      position: 'absolute' as const,
+      width: '100%',
     }),
   }
 
@@ -70,6 +86,7 @@ export function Testimonials() {
     (newDirection: number) => {
       setDirection(newDirection)
       setCurrentIndex((prevIndex) => {
+        if (testimonials.length === 0) return prevIndex
         let nextIndex = prevIndex + newDirection
         if (nextIndex < 0) nextIndex = testimonials.length - 1
         if (nextIndex >= testimonials.length) nextIndex = 0
@@ -79,15 +96,55 @@ export function Testimonials() {
     [testimonials.length]
   )
 
-  useEffect(() => {
-    if (testimonials.length === 0) return
-
-    const interval = setInterval(() => {
-      paginate(1)
-    }, 5000)
-
-    return () => clearInterval(interval)
+  const resetInterval = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+    }
+    
+    if (testimonials.length > 1) {
+      intervalRef.current = setInterval(() => {
+        paginate(1)
+      }, 5000)
+    }
   }, [testimonials.length, paginate])
+
+  useEffect(() => {
+    resetInterval()
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+      }
+    }
+  }, [testimonials.length, resetInterval])
+
+  const handleManualNavigation = useCallback((newDirection: number) => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+    }
+    
+    paginate(newDirection)
+    
+    if (testimonials.length > 1) {
+      intervalRef.current = setInterval(() => {
+        paginate(1)
+      }, 5000)
+    }
+  }, [testimonials.length, paginate])
+
+  const handleDotClick = useCallback((index: number) => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+    }
+    
+    setDirection(index > currentIndex ? 1 : -1)
+    setCurrentIndex(index)
+    
+    if (testimonials.length > 1) {
+      intervalRef.current = setInterval(() => {
+        paginate(1)
+      }, 5000)
+    }
+  }, [currentIndex, testimonials.length, paginate])
 
   if (loading) {
     return (
@@ -128,89 +185,97 @@ export function Testimonials() {
         </motion.div>
 
         <div className="relative max-w-3xl mx-auto">
-          <AnimatePresence initial={false} custom={direction}>
-            <motion.div
-              key={currentIndex}
-              custom={direction}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{
-                x: { type: "spring", stiffness: 300, damping: 30 },
-                opacity: { duration: 0.2 },
-              }}
-              drag="x"
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={1}
-              onDragEnd={(e, { offset, velocity }) => {
-                const swipe = swipePower(offset.x, velocity.x)
+          {/* Container with fixed height to prevent jumping */}
+          <div 
+            className="relative overflow-hidden" 
+            style={{ height: height || 'auto', minHeight: '300px' }}
+          >
+            <AnimatePresence initial={false} custom={direction} mode="wait">
+              <motion.div
+                key={currentIndex}
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{
+                  x: { type: "spring", stiffness: 300, damping: 30 },
+                  opacity: { duration: 0.2 },
+                }}
+                drag="x"
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={1}
+                onDragEnd={(e, { offset, velocity }) => {
+                  const swipe = swipePower(offset.x, velocity.x)
 
-                if (swipe < -swipeConfidenceThreshold) {
-                  paginate(1)
-                } else if (swipe > swipeConfidenceThreshold) {
-                  paginate(-1)
-                }
-              }}
-              className="w-full"
-            >
-              <Card className="border-primary/20">
-                <CardContent className="p-8 md:p-12">
-                  {/* Rating */}
-                  <div className="flex justify-center mb-6">
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className={cn(
-                          "h-5 w-5",
-                          i < testimonial.rating
-                            ? "text-yellow-500 fill-yellow-500"
-                            : "text-text-muted"
-                        )}
-                      />
-                    ))}
-                  </div>
+                  if (swipe < -swipeConfidenceThreshold) {
+                    handleManualNavigation(1)
+                  } else if (swipe > swipeConfidenceThreshold) {
+                    handleManualNavigation(-1)
+                  }
+                }}
+                className="w-full"
+              >
+                <div ref={cardRef}>
+                  <Card className="border-primary/20">
+                    <CardContent className="p-8 md:p-12">
+                      {/* Rating */}
+                      <div className="flex justify-center mb-6">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={cn(
+                              "h-5 w-5",
+                              i < testimonial.rating
+                                ? "text-yellow-500 fill-yellow-500"
+                                : "text-text-muted"
+                            )}
+                          />
+                        ))}
+                      </div>
 
-                  {/* Quote */}
-                  <blockquote className="text-lg md:text-xl text-center mb-6">
-                    "{testimonial.content}"
-                  </blockquote>
+                      {/* Quote */}
+                      <blockquote className="text-lg md:text-xl text-center mb-6">
+                        "{testimonial.content}"
+                      </blockquote>
 
-                  {/* Client Info */}
-                  <div className="flex items-center justify-center gap-4">
-                    <Avatar className="h-12 w-12 border-2 border-primary">
-                      <AvatarImage src={testimonial.avatar_url} />
-                      <AvatarFallback className="bg-primary/10 text-primary">
-                        {testimonial.client_name.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-semibold">{testimonial.client_name}</p>
-                      <p className="text-sm text-text-muted">
-                        {testimonial.client_position}
-                        {testimonial.client_company && `, ${testimonial.client_company}`}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </AnimatePresence>
+                      {/* Client Info */}
+                      <div className="flex items-center justify-center gap-4">
+                        <Avatar className="h-12 w-12 border-2 border-primary">
+                          <AvatarImage src={testimonial.avatar_url} />
+                          <AvatarFallback className="bg-primary/10 text-primary">
+                            {testimonial.client_name.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-semibold">{testimonial.client_name}</p>
+                          <p className="text-sm text-text-muted">
+                            {testimonial.client_position}
+                            {testimonial.client_company && `, ${testimonial.client_company}`}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
 
           {/* Navigation Buttons */}
           <Button
             variant="outline"
             size="icon"
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 rounded-full"
-            onClick={() => paginate(-1)}
+            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 rounded-full z-10"
+            onClick={() => handleManualNavigation(-1)}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button
             variant="outline"
             size="icon"
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 rounded-full"
-            onClick={() => paginate(1)}
+            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 rounded-full z-10"
+            onClick={() => handleManualNavigation(1)}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -220,10 +285,7 @@ export function Testimonials() {
             {testimonials.map((_, index) => (
               <button
                 key={index}
-                onClick={() => {
-                  setDirection(index > currentIndex ? 1 : -1)
-                  setCurrentIndex(index)
-                }}
+                onClick={() => handleDotClick(index)}
                 className={cn(
                   "w-2 h-2 rounded-full transition-all duration-300",
                   index === currentIndex

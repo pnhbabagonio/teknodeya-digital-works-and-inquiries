@@ -1,9 +1,8 @@
 // components/sections/hero-section.tsx
 'use client'
 
-import { motion, useScroll, useTransform } from 'framer-motion'
+import { motion, useScroll, useTransform, useSpring } from 'framer-motion'
 import Link from 'next/link'
-import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, Sparkles, ChevronDown } from 'lucide-react'
 import { useRef, useEffect, useState } from 'react'
@@ -18,10 +17,44 @@ export function HeroSection() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const [isMounted, setIsMounted] = useState(false)
   const [cursorVariant, setCursorVariant] = useState("default")
+  const [activeWord, setActiveWord] = useState<number | null>(null)
   
-  const opacity = useTransform(scrollYProgress, [0, 1], [1, 0])
-  const scale = useTransform(scrollYProgress, [0, 1], [1, 0.8])
-  const y = useTransform(scrollYProgress, [0, 1], [0, 100])
+  // Smooth spring animations for parallax effects
+  const smoothProgress = useSpring(scrollYProgress, {
+    stiffness: 100,
+    damping: 30,
+    mass: 0.5
+  })
+  
+  const opacity = useTransform(smoothProgress, [0, 1], [1, 0])
+  const scale = useTransform(smoothProgress, [0, 1], [1, 0.9])
+  const y = useTransform(smoothProgress, [0, 1], [0, 150])
+  const blur = useTransform(smoothProgress, [0, 0.5, 1], [0, 2, 4])
+
+  // Text animation variants
+  const letterVariants = {
+    hidden: { opacity: 0, y: 50 },
+    visible: (i: number) => ({
+      opacity: 1,
+      y: 0,
+      transition: {
+        delay: i * 0.03,
+        duration: 0.5,
+        ease: [0.2, 0.65, 0.3, 0.9],
+      },
+    }),
+  }
+
+  const wordVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.03,
+        delayChildren: 0.2,
+      },
+    },
+  }
 
   useEffect(() => {
     setIsMounted(true)
@@ -37,82 +70,62 @@ export function HeroSection() {
     return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [])
 
-  // Fixed particle positions that won't change between server and client
-  const floatingParticles = [
-    { id: 1, x: 15, y: 20, size: 3, duration: 12, delay: 0 },
-    { id: 2, x: 85, y: 30, size: 4, duration: 15, delay: -2 },
-    { id: 3, x: 45, y: 70, size: 2.5, duration: 18, delay: -5 },
-    { id: 4, x: 70, y: 15, size: 3.5, duration: 14, delay: -3 },
-    { id: 5, x: 25, y: 85, size: 3, duration: 16, delay: -4 },
-    { id: 6, x: 90, y: 60, size: 4.5, duration: 20, delay: -6 },
-    { id: 7, x: 10, y: 45, size: 2, duration: 13, delay: -1 },
-    { id: 8, x: 55, y: 90, size: 3.8, duration: 17, delay: -7 },
-    { id: 9, x: 35, y: 35, size: 4.2, duration: 19, delay: -8 },
-    { id: 10, x: 75, y: 75, size: 3.2, duration: 15, delay: -9 },
-    { id: 11, x: 50, y: 50, size: 5, duration: 22, delay: -10 },
-    { id: 12, x: 95, y: 80, size: 2.8, duration: 16, delay: -11 },
-    { id: 13, x: 5, y: 95, size: 3.6, duration: 18, delay: -12 },
-    { id: 14, x: 65, y: 40, size: 4.8, duration: 21, delay: -13 },
-    { id: 15, x: 30, y: 10, size: 3.4, duration: 14, delay: -14 },
-    { id: 16, x: 80, y: 55, size: 2.2, duration: 17, delay: -15 },
-    { id: 17, x: 40, y: 65, size: 4.6, duration: 19, delay: -16 },
-    { id: 18, x: 20, y: 25, size: 3.9, duration: 16, delay: -17 },
-    { id: 19, x: 60, y: 45, size: 2.7, duration: 15, delay: -18 },
-    { id: 20, x: 88, y: 88, size: 4.1, duration: 20, delay: -19 },
+  // Enhanced particle system
+  const floatingParticles = Array.from({ length: 30 }, (_, i) => ({
+    id: i,
+    x: Math.random() * 100,
+    y: Math.random() * 100,
+    size: 2 + Math.random() * 4,
+    duration: 15 + Math.random() * 20,
+    delay: -Math.random() * 20,
+    color: i % 3 === 0 ? 'primary' : i % 3 === 1 ? 'secondary' : 'accent',
+  }))
+
+  const headlineWords = [
+    { text: "We", highlight: false },
+    { text: "design", highlight: false },
+    { text: "and", highlight: false },
+    { text: "build", highlight: false },
+    { text: "your", highlight: true },
+    { text: "ideas", highlight: true },
   ]
 
-  // Don't render particles until after hydration to avoid mismatch
+  // Don't render particles until after hydration
   if (!isMounted) {
     return (
       <section 
         ref={containerRef}
         className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-background via-background to-background/95"
       >
-        {/* Simple background without particles for SSR */}
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_30%_50%,rgba(0,186,242,0.15),transparent_60%)]" />
-          <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_70%_50%,rgba(255,154,60,0.15),transparent_60%)]" />
+        <div className="absolute inset-0">
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,rgba(0,186,242,0.12),transparent_50%)]" />
+          <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(ellipse_at_bottom,rgba(255,154,60,0.12),transparent_50%)]" />
         </div>
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="max-w-5xl mx-auto text-center">
-            {/* Static logo */}
-            <div className="mb-8 relative">
-              <Image
-                src="/assets/official-logov2.png"
-                alt="Teknodeya"
-                width={220}
-                height={74}
-                className="mx-auto h-20 sm:h-24 w-auto drop-shadow-2xl"
-                priority
-              />
-            </div>
-
-            {/* Static text */}
-            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-heading font-bold mb-6 leading-tight">
+            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-heading font-bold mb-8 leading-[1.1]">
               We design and build
-              <span className="block gradient-text">
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/80 to-secondary">
                 your ideas
               </span>
             </h1>
 
-            <p className="text-xl sm:text-2xl text-text-muted mb-12 max-w-3xl mx-auto leading-relaxed">
-              <span className="inline-block bg-gradient-to-r from-primary/5 to-secondary/5 dark:from-primary/5 dark:to-secondary/5 px-6 py-3 rounded-2xl backdrop-blur-sm">
-                Transform your vision into reality with our expert team of designers and developers. 
-                We create powerful digital experiences that drive results.
+            <p className="text-lg sm:text-xl text-muted-foreground mb-12 max-w-2xl mx-auto">
+              <span className="inline-block px-6 py-3 rounded-2xl bg-background/50 backdrop-blur-sm border border-border/50">
+                Transform your vision into reality with our expert team of designers and developers.
               </span>
             </p>
 
-            {/* Static buttons */}
-            <div className="flex flex-col sm:flex-row gap-5 justify-center">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button 
                 size="lg" 
                 variant="default" 
-                className="bg-primary hover:bg-primary/90 shadow-xl" 
+                className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/25 min-w-[200px]" 
                 asChild
               >
                 <Link href="/services">
-                  <span className="flex items-center">
+                  <span className="flex items-center justify-center">
                     Explore Services
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </span>
@@ -122,11 +135,11 @@ export function HeroSection() {
               <Button 
                 size="lg" 
                 variant="secondary" 
-                className="bg-secondary hover:bg-secondary/90 text-secondary-foreground border-2 backdrop-blur-sm" 
+                className="bg-secondary hover:bg-secondary/90 text-secondary-foreground shadow-lg shadow-secondary/25 min-w-[200px]" 
                 asChild
               >
                 <Link href="/inquiry">
-                  <span className="flex items-center">
+                  <span className="flex items-center justify-center">
                     Start Your Project
                     <Sparkles className="ml-2 h-4 w-4" />
                   </span>
@@ -144,54 +157,94 @@ export function HeroSection() {
       ref={containerRef}
       className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-background via-background to-background/95"
     >
-      {/* Custom Mouse Cursor - Subtle and Harmonious */}
+      {/* Enhanced Custom Cursor */}
       <motion.div
         className="fixed top-0 left-0 pointer-events-none z-50 hidden lg:block"
         animate={{
-          x: mousePosition.x - 12,
-          y: mousePosition.y - 12,
-          scale: cursorVariant === "hover" ? 1.5 : 1,
+          x: mousePosition.x - 20,
+          y: mousePosition.y - 20,
+          scale: cursorVariant === "hover" ? 1.8 : 1,
         }}
         transition={{
           type: "spring",
-          stiffness: 150,
-          damping: 15,
-          mass: 0.5,
+          stiffness: 100,
+          damping: 20,
+          mass: 0.3,
         }}
       >
         <motion.div
           className="relative"
           animate={{
-            rotate: [0, 5, -5, 0],
-          }}
-          transition={{
-            duration: 4,
-            repeat: Infinity,
-            ease: "easeInOut",
+            rotate: cursorVariant === "hover" ? 180 : 0,
           }}
         >
-          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 backdrop-blur-sm border border-white/10 shadow-lg" />
+          <div className="w-10 h-10 rounded-full border-2 border-primary/30 bg-background/10 backdrop-blur-sm" />
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-            <div className="w-2 h-2 rounded-full bg-gradient-to-r from-primary/60 to-secondary/60 animate-pulse" />
+            <div className="w-1 h-1 rounded-full bg-primary/60" />
           </div>
         </motion.div>
       </motion.div>
 
-      {/* Animated Background Grid */}
-      <div className="absolute inset-0 opacity-[0.15]">
-        <div 
-          className="absolute inset-0 bg-grid-pattern"
+      {/* Enhanced Background with Dynamic Gradients */}
+      <div className="absolute inset-0">
+        <motion.div
+          className="absolute inset-0 bg-grid-pattern opacity-[0.03]"
           style={{
-            transform: `translate(${mousePosition.x * 0.02}px, ${mousePosition.y * 0.02}px)`,
+            backgroundSize: '50px 50px',
+          }}
+          animate={{
+            backgroundPosition: [`${mousePosition.x * 0.02}px ${mousePosition.y * 0.02}px`],
+          }}
+        />
+        
+        {/* Animated gradient blobs */}
+        <motion.div
+          className="absolute top-0 -left-20 w-[600px] h-[600px] rounded-full bg-gradient-to-r from-primary/20 to-transparent blur-3xl"
+          animate={{
+            x: [0, 100, 0],
+            y: [0, -50, 0],
+            scale: [1, 1.3, 1],
+          }}
+          transition={{
+            duration: 25,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+        
+        <motion.div
+          className="absolute bottom-0 -right-20 w-[700px] h-[700px] rounded-full bg-gradient-to-l from-secondary/20 to-transparent blur-3xl"
+          animate={{
+            x: [0, -100, 0],
+            y: [0, 50, 0],
+            scale: [1, 1.4, 1],
+          }}
+          transition={{
+            duration: 30,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+        
+        <motion.div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-gradient-to-r from-accent/10 to-transparent blur-3xl"
+          animate={{
+            scale: [1, 1.5, 1],
+            opacity: [0.3, 0.6, 0.3],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "easeInOut",
           }}
         />
       </div>
 
-      {/* Floating Particles - Now with fixed positions */}
+      {/* Enhanced Floating Particles */}
       {floatingParticles.map((particle) => (
         <motion.div
           key={particle.id}
-          className="absolute rounded-full bg-primary/20 dark:bg-primary/10"
+          className={`absolute rounded-full bg-${particle.color}/20 dark:bg-${particle.color}/10`}
           style={{
             left: `${particle.x}%`,
             top: `${particle.y}%`,
@@ -200,163 +253,140 @@ export function HeroSection() {
             filter: 'blur(1px)',
           }}
           animate={{
-            x: [0, 30, -30, 0],
-            y: [0, -30, 30, 0],
-            scale: [1, 1.2, 0.8, 1],
-            opacity: [0.3, 0.6, 0.3, 0.3],
+            x: [0, Math.random() * 100 - 50, Math.random() * 100 - 50, 0],
+            y: [0, Math.random() * 100 - 50, Math.random() * 100 - 50, 0],
+            scale: [1, Math.random() * 1.5 + 0.5, Math.random() * 1.5 + 0.5, 1],
+            opacity: [0.2, 0.5, 0.2, 0.2],
           }}
           transition={{
             duration: particle.duration,
             repeat: Infinity,
             delay: particle.delay,
-            ease: "linear",
+            ease: "easeInOut",
           }}
         />
       ))}
 
-      {/* Animated Gradient Orbs */}
-      <motion.div
-        className="absolute top-0 -left-20 w-[500px] h-[500px] rounded-full bg-gradient-to-r from-primary/30 to-secondary/30 blur-3xl"
-        animate={{
-          x: [0, 100, 0],
-          y: [0, -50, 0],
-          scale: [1, 1.2, 1],
-        }}
-        transition={{
-          duration: 20,
-          repeat: Infinity,
-          ease: "linear",
-        }}
-      />
-      
-      <motion.div
-        className="absolute bottom-0 -right-20 w-[600px] h-[600px] rounded-full bg-gradient-to-l from-accent/30 to-primary/30 blur-3xl"
-        animate={{
-          x: [0, -100, 0],
-          y: [0, 50, 0],
-          scale: [1, 1.3, 1],
-        }}
-        transition={{
-          duration: 25,
-          repeat: Infinity,
-          ease: "linear",
-        }}
-      />
-
-      {/* Background Pattern Overlay */}
-      <div className="absolute inset-0 opacity-30">
-        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_30%_50%,rgba(0,186,242,0.15),transparent_60%)]" />
-        <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_70%_50%,rgba(255,154,60,0.15),transparent_60%)]" />
-      </div>
-
       <motion.div 
-        style={{ opacity, scale, y }}
+        style={{ opacity, scale, y, filter: `blur(${blur}px)` }}
         className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10"
       >
-        <div className="max-w-5xl mx-auto text-center">
-          {/* Animated Logo with Parallax */}
+        <div className="max-w-6xl mx-auto text-center">
+          {/* Animated Headline with Word-by-Word and Letter Animation */}
           <motion.div
-            initial={{ scale: 0.8, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            transition={{ 
-              duration: 0.8,
-              type: "spring",
-              stiffness: 100,
-            }}
-            className="mb-8 relative"
-            style={{
-              transform: `translate(${mousePosition.x * 0.02}px, ${mousePosition.y * 0.02}px)`,
-            }}
-            onHoverStart={() => setCursorVariant("hover")}
-            onHoverEnd={() => setCursorVariant("default")}
+            variants={wordVariants}
+            initial="hidden"
+            animate="visible"
+            className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-heading font-bold mb-8 leading-[1.1]"
+          >
+            <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
+              {headlineWords.map((word, wordIndex) => (
+                <motion.span
+                  key={wordIndex}
+                  variants={wordVariants}
+                  className="inline-block"
+                  onHoverStart={() => setActiveWord(wordIndex)}
+                  onHoverEnd={() => setActiveWord(null)}
+                >
+                  {word.text.split('').map((letter, letterIndex) => (
+                    <motion.span
+                      key={letterIndex}
+                      custom={letterIndex + wordIndex * 10}
+                      variants={letterVariants}
+                      className={`inline-block transition-all duration-300 ${
+                        word.highlight 
+                          ? 'text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/80 to-secondary' 
+                          : ''
+                      } ${activeWord === wordIndex ? 'scale-110' : ''}`}
+                      style={{
+                        display: 'inline-block',
+                        transformOrigin: 'center bottom',
+                      }}
+                    >
+                      {letter}
+                    </motion.span>
+                  ))}
+                  {wordIndex < headlineWords.length - 1 && (
+                    <span className="inline-block w-2" />
+                  )}
+                </motion.span>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Enhanced Description with Floating Effect */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 1.2 }}
+            className="relative mb-12"
           >
             <motion.div
               animate={{
-                rotateY: [0, 10, -10, 0],
-                rotateX: [0, -10, 10, 0],
+                y: [0, -5, 0],
               }}
               transition={{
-                duration: 10,
+                duration: 4,
                 repeat: Infinity,
-                ease: "linear",
+                ease: "easeInOut",
               }}
             >
-              <Image
-                src="/assets/official-logov2.png"
-                alt="Teknodeya"
-                width={220}
-                height={74}
-                className="mx-auto h-20 sm:h-24 w-auto drop-shadow-2xl"
-                priority
-              />
+              <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">
+                <span className="relative inline-block px-8 py-4 rounded-2xl bg-background/50 backdrop-blur-md border border-border/50 shadow-lg">
+                  <motion.span
+                    className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/5 to-secondary/5"
+                    animate={{
+                      opacity: [0.5, 1, 0.5],
+                    }}
+                    transition={{
+                      duration: 3,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                  />
+                  <span className="relative z-10">
+                    Transform your vision into reality with our expert team of designers and developers.
+                    <span className="block text-sm mt-2 text-primary/70">We create powerful digital experiences that drive results.</span>
+                  </span>
+                </span>
+              </p>
             </motion.div>
           </motion.div>
 
-          {/* Tagline with Gradient Animation */}
-          <motion.h1
-            initial={{ y: 30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-heading font-bold mb-6 leading-tight"
-            onHoverStart={() => setCursorVariant("hover")}
-            onHoverEnd={() => setCursorVariant("default")}
-          >
-            We design and build
-            <motion.span 
-              className="block gradient-text animate-gradient"
-              animate={{
-                backgroundPosition: ['0% center', '200% center'],
-              }}
-              transition={{
-                duration: 8,
-                repeat: Infinity,
-                ease: "linear",
-              }}
-            >
-              your ideas
-            </motion.span>
-          </motion.h1>
-
-          {/* Description with subtle background */}
-          <motion.p
-            initial={{ y: 30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.5 }}
-            className="text-xl sm:text-2xl text-text-muted mb-12 max-w-3xl mx-auto leading-relaxed"
-          >
-          <motion.span 
-            className="inline-block bg-gradient-to-r from-primary/5 to-secondary/5 dark:from-primary/5 dark:to-secondary/5 px-6 py-3 rounded-2xl backdrop-blur-sm"
-            onHoverStart={() => setCursorVariant("hover")}
-            onHoverEnd={() => setCursorVariant("default")}
-          >
-              Transform your vision into reality with our expert team of designers and developers. 
-              We create powerful digital experiences that drive results.
-            </motion.span>
-          </motion.p>
-
-          {/* CTA Buttons with Original Colors */}
+          {/* Enhanced CTA Buttons with Improved Interactions */}
           <motion.div
-            initial={{ y: 30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.7 }}
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 1.5 }}
             className="flex flex-col sm:flex-row gap-5 justify-center"
           >
             <motion.div
               whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileTap={{ scale: 0.98 }}
               onHoverStart={() => setCursorVariant("hover")}
               onHoverEnd={() => setCursorVariant("default")}
             >
               <Button 
                 size="lg" 
                 variant="default" 
-                className="group relative overflow-hidden shadow-xl hover:shadow-2xl transition-shadow duration-300 bg-primary hover:bg-primary/90" 
+                className="group relative overflow-hidden bg-primary hover:bg-primary/90 text-primary-foreground shadow-xl hover:shadow-2xl shadow-primary/25 min-w-[220px] transition-all duration-300" 
                 asChild
               >
                 <Link href="/services">
-                  <span className="relative z-10 flex items-center">
+                  <motion.span
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                    initial={{ x: '-100%' }}
+                    whileHover={{ x: '100%' }}
+                    transition={{ duration: 0.8 }}
+                  />
+                  <span className="relative z-10 flex items-center justify-center">
                     Explore Services
-                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    <motion.span
+                      animate={{ x: [0, 5, 0] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                    >
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </motion.span>
                   </span>
                 </Link>
               </Button>
@@ -364,39 +394,50 @@ export function HeroSection() {
 
             <motion.div
               whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileTap={{ scale: 0.98 }}
               onHoverStart={() => setCursorVariant("hover")}
               onHoverEnd={() => setCursorVariant("default")}
             >
               <Button 
                 size="lg" 
                 variant="secondary" 
-                className="group relative overflow-hidden border-2 backdrop-blur-sm bg-secondary hover:bg-secondary/90 text-secondary-foreground" 
+                className="group relative overflow-hidden bg-secondary hover:bg-secondary/90 text-secondary-foreground border-2 border-secondary/20 shadow-xl hover:shadow-2xl shadow-secondary/25 min-w-[220px] transition-all duration-300" 
                 asChild
               >
                 <Link href="/inquiry">
-                  <span className="relative z-10 flex items-center">
+                  <motion.span
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                    initial={{ x: '-100%' }}
+                    whileHover={{ x: '100%' }}
+                    transition={{ duration: 0.8 }}
+                  />
+                  <span className="relative z-10 flex items-center justify-center">
                     Start Your Project
-                    <Sparkles className="ml-2 h-4 w-4" />
+                    <motion.span
+                      animate={{ rotate: [0, 15, 0] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    >
+                      <Sparkles className="ml-2 h-4 w-4" />
+                    </motion.span>
                   </span>
                 </Link>
               </Button>
             </motion.div>
           </motion.div>
 
-          {/* Subtle Scroll Indicator - Redesigned for Harmony */}
+          {/* Enhanced Scroll Indicator */}
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 0.6, y: 0 }}
-            transition={{ duration: 1, delay: 1.5 }}
-            className="absolute bottom-6 left-1/2 transform -translate-x-1/2"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1, delay: 2.5 }}
+            className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
           >
             <motion.div
               animate={{
-                y: [0, 6, 0],
+                y: [0, 10, 0],
               }}
               transition={{
-                duration: 2.5,
+                duration: 2,
                 repeat: Infinity,
                 ease: "easeInOut",
               }}
@@ -408,48 +449,13 @@ export function HeroSection() {
                 })
               }}
             >
-              {/* Minimalist scroll indicator - almost invisible */}
-              <div className="relative">
-                {/* Ultra-subtle line */}
-                <div className="w-8 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-                
-                {/* Tiny dot that fades in/out */}
-                <motion.div
-                  className="absolute left-1/2 transform -translate-x-1/2 -top-1"
-                  animate={{
-                    opacity: [0.2, 0.5, 0.2],
-                    scale: [1, 1.2, 1],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                >
-                  <div className="w-1 h-1 rounded-full bg-gradient-to-r from-primary/40 to-secondary/40" />
-                </motion.div>
-              </div>
-
-              {/* Alternative: Minimal chevron that fades */}
-              <motion.div
-                animate={{
-                  opacity: [0.1, 0.3, 0.1],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              >
-                <ChevronDown className="w-3 h-3 text-primary/20 mx-auto mt-1" />
-              </motion.div>
             </motion.div>
           </motion.div>
         </div>
       </motion.div>
 
-      {/* Bottom Gradient Fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
+      {/* Enhanced Bottom Gradient */}
+      <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-background via-background/80 to-transparent pointer-events-none" />
     </section>
   )
 }
