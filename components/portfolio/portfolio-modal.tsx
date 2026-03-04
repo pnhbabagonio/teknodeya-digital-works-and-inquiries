@@ -124,7 +124,7 @@ export function PortfolioModal({ item, open, onOpenChange }: PortfolioModalProps
                 ))}
                 {item.technologies.length > 6 && !showAllTech && (
                   <Button
-                    variant="link"
+                    variant="ghost"
                     size="sm"
                     className="text-primary h-auto p-0"
                     onClick={() => setShowAllTech(true)}
