@@ -119,7 +119,7 @@ export function Footer() {
 
         <div className="border-t border-white/5 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-text-muted text-sm">
-            © {new Date().getFullYear()} Teknodeya. All rights reserved.
+            © {new Date().getFullYear()} Teknodeya. All rights reserved. For Educational Purposes Only.
           </p>
           <div className="flex space-x-6">
             <Link href="/privacy" className="text-text-muted hover:text-primary text-sm transition-colors">
