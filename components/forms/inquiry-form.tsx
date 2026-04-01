@@ -254,7 +254,7 @@ export function InquiryForm() {
             <label className="text-sm font-medium">Phone</label>
             <Input
               {...register('phone')}
-              placeholder="+1 (555) 000-0000"
+              placeholder="0998-765-4321"
             />
           </div>
 
