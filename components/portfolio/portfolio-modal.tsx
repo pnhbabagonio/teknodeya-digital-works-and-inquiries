@@ -19,10 +19,7 @@ import {
   User,
   Code2,
   X,
-  ChevronLeft,
-  ChevronRight,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { useState } from 'react'
 
 interface PortfolioItem {
@@ -52,8 +49,10 @@ export function PortfolioModal({ item, open, onOpenChange }: PortfolioModalProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl p-0 overflow-hidden">
-        <div className="relative h-[300px] md:h-[400px] w-full">
+      <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-y-auto">
+        {/* Remove overflow-hidden from DialogContent */}
+        
+        <div className="relative h-[300px] md:h-[400px] w-full flex-shrink-0">
           <Image
             src={item.image_url}
             alt={item.title}
@@ -62,11 +61,11 @@ export function PortfolioModal({ item, open, onOpenChange }: PortfolioModalProps
           />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
           
-          {/* Close Button */}
+          {/* Close Button - Make it sticky or absolute positioned */}
           <Button
             variant="ghost"
             size="icon"
-            className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white rounded-full"
+            className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white rounded-full z-10"
             onClick={() => onOpenChange(false)}
           >
             <X className="h-4 w-4" />
@@ -75,7 +74,7 @@ export function PortfolioModal({ item, open, onOpenChange }: PortfolioModalProps
 
         <div className="p-6 md:p-8">
           <DialogHeader>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
               <Badge variant="secondary">{categoryLabel}</Badge>
               {item.live_url && (
                 <Badge variant="outline" className="border-green-500/50 text-green-500">
