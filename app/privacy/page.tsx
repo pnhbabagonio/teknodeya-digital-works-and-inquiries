@@ -89,7 +89,7 @@ export default function PrivacyPage() {
         {
           heading: 'Contact Us',
           paragraphs: [
-            'If you have questions about this Privacy Policy or our practices, please contact us at hello@teknodeya.ph or through the inquiry form on our website.',
+            'If you have questions about this Privacy Policy or our practices, please contact us at pnhbabagonio@gmail.com or through the inquiry form on our website.',
           ],
         },
       ]}

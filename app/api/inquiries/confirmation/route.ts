@@ -12,6 +12,8 @@ export const runtime = 'nodejs'
 
 const FROM_ADDRESS =
   process.env.INQUIRY_FROM_EMAIL || 'Teknodeya <onboarding@resend.dev>'
+const REPLY_TO_ADDRESS =
+  process.env.INQUIRY_REPLY_TO_EMAIL || 'pnhbabagonio@gmail.com'
 const SIGNATURE_IMAGE_PATH = join(
   process.cwd(),
   'public',
@@ -61,6 +63,7 @@ export async function POST(request: Request) {
       subject,
       html,
       text,
+      replyTo: REPLY_TO_ADDRESS,
       attachments: signatureImage.attachments,
     })
 

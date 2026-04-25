@@ -78,7 +78,7 @@ export default function TermsPage() {
         {
           heading: 'Contact Us',
           paragraphs: [
-            'Questions about these Terms? Reach us at hello@teknodeya.ph or through the inquiry form on our website.',
+            'Questions about these Terms? Reach us at pnhbabagonio@gmail.com or through the inquiry form on our website.',
           ],
         },
       ]}

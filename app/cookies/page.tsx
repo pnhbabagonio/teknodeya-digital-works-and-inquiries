@@ -68,7 +68,7 @@ export default function CookiesPage() {
         {
           heading: 'Contact Us',
           paragraphs: [
-            'If you have questions about our use of cookies, please contact us at hello@teknodeya.ph or through the inquiry form on our website.',
+            'If you have questions about our use of cookies, please contact us at pnhbabagonio@gmail.com or through the inquiry form on our website.',
           ],
         },
       ]}
