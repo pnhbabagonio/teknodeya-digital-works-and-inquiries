@@ -1,28 +1,29 @@
 // lib/emails/inquiry-confirmation.ts
 // HTML email template sent to clients after they submit an inquiry.
 
-const SIGNATURE_IMAGE_URL =
-  'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/emailsignature-p7ZGfqQJdKb9B1XgcFMW5vc7of3whR.png'
+export const SIGNATURE_IMAGE_CONTENT_ID = 'teknodeya-email-signature'
 
 interface InquiryConfirmationParams {
   fullName: string
   referenceNumber: string
+  signatureImageSrc?: string
 }
 
 export function buildInquiryConfirmationEmail({
   fullName,
   referenceNumber,
+  signatureImageSrc = `cid:${SIGNATURE_IMAGE_CONTENT_ID}`,
 }: InquiryConfirmationParams): { subject: string; html: string; text: string } {
   const safeName = fullName?.trim() || 'there'
 
-  const subject = `We received your inquiry — ${referenceNumber}`
+  const subject = `We received your inquiry - ${referenceNumber}`
 
   const html = `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>${subject}</title>
+    <title>${escapeHtml(subject)}</title>
   </head>
   <body style="margin:0;padding:0;background-color:#f5f5f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f1419;">
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#f5f5f4;padding:32px 16px;">
@@ -47,7 +48,7 @@ export function buildInquiryConfirmationEmail({
                   </p>
                 </div>
                 <p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;color:#374151;">
-                  Please keep this reference number for your records — you can mention it in any follow-up message so we can pull up your inquiry instantly.
+                  Please keep this reference number for your records - you can mention it in any follow-up message so we can pull up your inquiry instantly.
                 </p>
                 <p style="margin:0 0 32px 0;font-size:15px;line-height:1.6;color:#374151;">
                   In the meantime, feel free to reply to this email if you have anything else you&rsquo;d like to share about your project.
@@ -61,8 +62,8 @@ export function buildInquiryConfirmationEmail({
                   The Teknodeya Team
                 </p>
                 <img
-                  src="${SIGNATURE_IMAGE_URL}"
-                  alt="Philip Neel Babagonio — Chief Executive Officer, Teknodeya"
+                  src="${escapeHtml(signatureImageSrc)}"
+                  alt="Philip Neel Babagonio - Chief Executive Officer, Teknodeya"
                   width="520"
                   style="display:block;max-width:100%;height:auto;border:0;outline:none;text-decoration:none;"
                 />
@@ -85,7 +86,7 @@ export function buildInquiryConfirmationEmail({
     '',
     `Reference Number: ${referenceNumber}`,
     '',
-    "Please keep this reference number for your records — you can mention it in any follow-up message so we can pull up your inquiry instantly.",
+    "Please keep this reference number for your records - you can mention it in any follow-up message so we can pull up your inquiry instantly.",
     '',
     "In the meantime, feel free to reply to this email if you have anything else you'd like to share about your project.",
     '',
