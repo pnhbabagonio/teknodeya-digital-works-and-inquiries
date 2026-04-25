@@ -94,7 +94,33 @@ export function InquiryModal({ inquiry, open, onOpenChange, onUpdate }: InquiryM
 
     setUpdating(true)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser()
+
+      if (userError || !user) {
+        throw new Error('You must be signed in to update inquiry status.')
+      }
+
+      // Ensure a matching profiles row exists so the FK on
+      // inquiry_status_history.changed_by doesn't fail.
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert(
+          {
+            id: user.id,
+            email: user.email ?? '',
+            full_name:
+              (user.user_metadata?.full_name as string | undefined) ?? null,
+          },
+          { onConflict: 'id' }
+        )
+
+      if (profileError) {
+        console.error('[v0] Profile upsert error:', profileError)
+        // Don't block the update; we'll insert history without changed_by below.
+      }
 
       // Update inquiry status
       const { error: updateError } = await supabase
@@ -102,26 +128,42 @@ export function InquiryModal({ inquiry, open, onOpenChange, onUpdate }: InquiryM
         .update({ status: newStatus })
         .eq('id', inquiry.id)
 
-      if (updateError) throw updateError
+      if (updateError) {
+        console.error('[v0] Inquiry update error:', updateError)
+        throw new Error(updateError.message)
+      }
 
-      // Add to history
+      // Add to history (omit changed_by if profile upsert failed,
+      // because the FK would otherwise reject the row).
+      const historyRow: Record<string, unknown> = {
+        inquiry_id: inquiry.id,
+        status: newStatus,
+        notes: statusNotes || null,
+      }
+      if (!profileError) {
+        historyRow.changed_by = user.id
+      }
+
       const { error: historyError } = await supabase
         .from('inquiry_status_history')
-        .insert({
-          inquiry_id: inquiry.id,
-          status: newStatus,
-          notes: statusNotes,
-          changed_by: user?.id,
-        })
+        .insert(historyRow)
 
-      if (historyError) throw historyError
+      if (historyError) {
+        console.error('[v0] History insert error:', historyError)
+        throw new Error(historyError.message)
+      }
 
       toast.success('Status updated successfully')
       onUpdate()
       loadStatusHistory()
       setStatusNotes('')
     } catch (error) {
-      toast.error('Failed to update status')
+      console.error('[v0] Status update failed:', error)
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Failed to update status. Please try again.'
+      toast.error(message)
     } finally {
       setUpdating(false)
     }
