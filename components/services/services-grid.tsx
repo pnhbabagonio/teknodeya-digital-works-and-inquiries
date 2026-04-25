@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { ServiceCard } from './service-card'
@@ -46,15 +47,36 @@ const tabs = [
   { value: 'creative-design', label: 'Creative Design' },
 ]
 
+const validCategories = new Set([
+  'web-development',
+  'mobile-app',
+  'ui-ux-design',
+  'creative-design',
+])
+
 export function ServicesGrid() {
+  const searchParams = useSearchParams()
+  const categoryParam = searchParams.get('category')
+  const initialTab =
+    categoryParam && validCategories.has(categoryParam) ? categoryParam : 'all'
+
   const [services, setServices] = useState<Service[]>([])
   const [filteredServices, setFilteredServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('all')
+  const [activeTab, setActiveTab] = useState(initialTab)
 
   useEffect(() => {
     loadServices()
   }, [])
+
+  // Sync tab when the user navigates between footer links on the same page
+  useEffect(() => {
+    if (categoryParam && validCategories.has(categoryParam)) {
+      setActiveTab(categoryParam)
+    } else if (!categoryParam) {
+      setActiveTab('all')
+    }
+  }, [categoryParam])
 
   useEffect(() => {
     if (activeTab === 'all') {

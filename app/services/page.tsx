@@ -1,6 +1,8 @@
 // app/services/page.tsx
 import { Metadata } from 'next'
+import { Suspense } from 'react'
 import { ServicesGrid } from '@/components/services/services-grid'
+import { ServiceSkeleton } from '@/components/services/service-skeleton'
 
 export const metadata: Metadata = {
   title: 'Our Services',
@@ -23,7 +25,17 @@ export default function ServicesPage() {
         </div>
 
         {/* Services Grid with Tabs */}
-        <ServicesGrid />
+        <Suspense
+          fallback={
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <ServiceSkeleton key={i} />
+              ))}
+            </div>
+          }
+        >
+          <ServicesGrid />
+        </Suspense>
       </div>
     </main>
   )
