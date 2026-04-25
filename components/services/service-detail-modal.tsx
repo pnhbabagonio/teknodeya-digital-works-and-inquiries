@@ -20,7 +20,6 @@ import {
   PenTool,
   CheckCircle,
   Clock,
-  DollarSign,
   ArrowRight,
   X,
   Sparkles,
@@ -129,7 +128,12 @@ export function ServiceDetailModal({ service, open, onOpenChange }: ServiceDetai
             <p className="font-semibold">{service.delivery_time || 'Varies'}</p>
           </div>
           <div className="text-center p-3 bg-surface/50 rounded-card">
-            <DollarSign className="h-5 w-5 text-primary mx-auto mb-2" />
+            <span
+              aria-hidden="true"
+              className="mx-auto mb-2 flex h-5 w-5 items-center justify-center text-primary font-bold leading-none"
+            >
+              ₱
+            </span>
             <p className="text-xs text-text-muted">Starting at</p>
             <p className="font-semibold">{service.price_range || 'Custom'}</p>
           </div>

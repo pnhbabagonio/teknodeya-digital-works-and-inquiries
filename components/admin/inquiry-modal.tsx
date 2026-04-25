@@ -35,7 +35,6 @@ import {
   Mail,
   Phone,
   Building2,
-  DollarSign,
   CalendarDays,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -222,7 +221,12 @@ export function InquiryModal({ inquiry, open, onOpenChange, onUpdate }: InquiryM
 
             <div className="bg-surface/50 rounded-card p-4">
               <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-primary" />
+                <span
+                  aria-hidden="true"
+                  className="inline-flex h-4 w-4 items-center justify-center text-primary font-bold leading-none"
+                >
+                  ₱
+                </span>
                 Project Details
               </h3>
               <div className="space-y-3">

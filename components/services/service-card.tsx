@@ -14,7 +14,6 @@ import {
   PenTool,
   CheckCircle,
   Clock,
-  DollarSign,
   ArrowRight,
   Sparkles,
 } from 'lucide-react'
@@ -74,7 +73,7 @@ export function ServiceCard({ service }: ServiceCardProps) {
         {/* Gradient Background */}
         <div
           className={cn(
-            'absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500 bg-gradient-to-br',
+            'pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500 bg-gradient-to-br',
             categoryColor
           )}
         />
@@ -82,7 +81,7 @@ export function ServiceCard({ service }: ServiceCardProps) {
         {/* Icon Background */}
         <div
           className={cn(
-            'absolute -right-8 -top-8 w-24 h-24 rounded-full bg-gradient-to-br opacity-20 group-hover:opacity-30 transition-opacity duration-500',
+            'pointer-events-none absolute -right-8 -top-8 w-24 h-24 rounded-full bg-gradient-to-br opacity-20 group-hover:opacity-30 transition-opacity duration-500',
             categoryColor
           )}
         />
@@ -143,7 +142,12 @@ export function ServiceCard({ service }: ServiceCardProps) {
           <div className="grid grid-cols-2 gap-3 pt-2">
             {service.price_range && (
               <div className="flex items-center gap-1.5 text-sm">
-                <DollarSign className="h-4 w-4 text-primary" />
+                <span
+                  aria-hidden="true"
+                  className="inline-flex h-4 w-4 items-center justify-center text-primary font-bold leading-none"
+                >
+                  ₱
+                </span>
                 <span className="text-text-muted">{service.price_range}</span>
               </div>
             )}
@@ -156,7 +160,7 @@ export function ServiceCard({ service }: ServiceCardProps) {
           </div>
         </CardContent>
 
-        <CardFooter>
+        <CardFooter className="relative z-10">
           <Button
             variant="ghost"
             className="w-full group/btn"
@@ -173,7 +177,7 @@ export function ServiceCard({ service }: ServiceCardProps) {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: isHovered ? 1 : 0 }}
-          className="absolute top-4 right-4"
+          className="pointer-events-none absolute top-4 right-4"
         >
           <Sparkles className="h-4 w-4 text-primary" />
         </motion.div>
