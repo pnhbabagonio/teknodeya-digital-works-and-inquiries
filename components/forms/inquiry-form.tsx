@@ -128,27 +128,44 @@ export function InquiryForm({ initialService }: InquiryFormProps = {}) {
     try {
       const supabase = createClient()
       const refNumber = generateReferenceNumber()
-      
+
       // Upload files to Supabase Storage
       const uploadedFiles = []
       for (const file of files) {
-        const fileExt = file.name.split('.').pop()
-        const fileName = `${refNumber}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
-        const { data: fileData, error: uploadError } = await supabase.storage
-          .from('inquiry-attachments')
-          .upload(fileName, file)
+        const lastDot = file.name.lastIndexOf('.')
+        const rawExt = lastDot >= 0 ? file.name.slice(lastDot + 1) : ''
+        // Keep only alphanumerics in the extension to avoid invalid storage keys
+        const fileExt = rawExt.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'bin'
+        const uniqueId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+        const storagePath = `${refNumber}/${uniqueId}.${fileExt}`
 
-        if (uploadError) throw uploadError
-
-        const { data: { publicUrl } } = supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from('inquiry-attachments')
-          .getPublicUrl(fileName)
+          .upload(storagePath, file, {
+            cacheControl: '3600',
+            upsert: false,
+            contentType: file.type || 'application/octet-stream',
+          })
+
+        if (uploadError) {
+          console.error('[v0] Storage upload error:', uploadError)
+          throw new Error(
+            `Could not upload "${file.name}": ${uploadError.message}`
+          )
+        }
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage
+          .from('inquiry-attachments')
+          .getPublicUrl(storagePath)
 
         uploadedFiles.push({
           name: file.name,
           size: file.size,
           type: file.type,
           url: publicUrl,
+          path: storagePath,
         })
       }
 
@@ -166,18 +183,25 @@ export function InquiryForm({ initialService }: InquiryFormProps = {}) {
         attachments: uploadedFiles,
       })
 
-      if (error) throw error
+      if (error) {
+        console.error('[v0] Insert inquiry error:', error)
+        throw new Error(error.message)
+      }
 
       setReferenceNumber(refNumber)
       setSubmitted(true)
       reset()
       setFiles([])
       setSelectedServices([])
-      
+
       toast.success('Inquiry submitted successfully!')
     } catch (error) {
-      console.error('Submission error:', error)
-      toast.error('Failed to submit inquiry. Please try again.')
+      console.error('[v0] Submission error:', error)
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Failed to submit inquiry. Please try again.'
+      toast.error(message)
     } finally {
       setIsSubmitting(false)
     }
