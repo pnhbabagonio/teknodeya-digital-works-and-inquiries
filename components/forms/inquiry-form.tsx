@@ -50,12 +50,18 @@ interface FileWithPreview extends File {
   preview?: string
 }
 
-export function InquiryForm() {
+interface InquiryFormProps {
+  initialService?: string
+}
+
+export function InquiryForm({ initialService }: InquiryFormProps = {}) {
+  const initialSelected = initialService ? [initialService] : []
+
   const [files, setFiles] = useState<FileWithPreview[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [referenceNumber, setReferenceNumber] = useState('')
-  const [selectedServices, setSelectedServices] = useState<string[]>([])
+  const [selectedServices, setSelectedServices] = useState<string[]>(initialSelected)
 
   const {
     register,
@@ -67,7 +73,7 @@ export function InquiryForm() {
   } = useForm<InquiryFormData>({
     resolver: zodResolver(inquirySchema),
     defaultValues: {
-      serviceTypes: [],
+      serviceTypes: initialSelected,
       budgetRange: 'not-specified',
     },
   })

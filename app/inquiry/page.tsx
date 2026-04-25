@@ -8,7 +8,22 @@ export const metadata: Metadata = {
   description: 'Start your project with Teknodeya. Fill out our inquiry form and we\'ll get back to you within 24-48 hours.',
 }
 
-export default function InquiryPage() {
+const validServices = new Set([
+  'web-development',
+  'mobile-app',
+  'ui-ux-design',
+  'creative-design',
+])
+
+export default async function InquiryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ service?: string }>
+}) {
+  const { service } = await searchParams
+  const initialService =
+    service && validServices.has(service) ? service : undefined
+
   return (
     <main className="min-h-screen pt-24 pb-16">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -33,7 +48,7 @@ export default function InquiryPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <InquiryForm />
+              <InquiryForm initialService={initialService} />
             </CardContent>
           </Card>
         </div>
