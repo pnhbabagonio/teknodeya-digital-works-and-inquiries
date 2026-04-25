@@ -1,8 +1,8 @@
 // components/admin/notifications-popover.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Bell, CheckCheck, Clock, AlertCircle, MessageSquare } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Bell, CheckCheck, Clock, AlertCircle, MessageSquare, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Popover,
@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 
 interface Notification {
   id: string
@@ -33,45 +34,67 @@ interface Notification {
 }
 
 export function NotificationsPopover() {
+  const supabase = useMemo(() => createClient(), [])
   const [notifications, setNotifications] = useState<Notification[]>([])
-  const [unreadCount, setUnreadCount] = useState(0)
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
-  const supabase = createClient()
+  const unreadCount = notifications.filter((notification) => !notification.read).length
 
   useEffect(() => {
     loadNotifications()
-    
-    // Subscribe to new notifications for the current user
+
+    let channel: ReturnType<typeof supabase.channel> | null = null
+
     const setupSubscription = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const channel = supabase
+      channel = supabase
         .channel('notifications-channel')
         .on(
           'postgres_changes',
           {
-            event: 'INSERT',
+            event: '*',
             schema: 'public',
             table: 'notifications',
             filter: `user_id=eq.${user.id}`,
           },
-          (payload) => {
-            const newNotification = payload.new as Notification
-            setNotifications(prev => [newNotification, ...prev])
-            setUnreadCount(prev => prev + 1)
+          (payload: any) => {
+            if (payload.eventType === 'INSERT') {
+              const newNotification = payload.new as Notification
+              setNotifications((prev) => [newNotification, ...prev])
+            }
+
+            if (payload.eventType === 'UPDATE') {
+              const updatedNotification = payload.new as Notification
+              setNotifications((prev) =>
+                prev.map((notification) =>
+                  notification.id === updatedNotification.id
+                    ? updatedNotification
+                    : notification
+                )
+              )
+            }
+
+            if (payload.eventType === 'DELETE') {
+              const deletedNotification = payload.old as Notification
+              setNotifications((prev) =>
+                prev.filter((notification) => notification.id !== deletedNotification.id)
+              )
+            }
           }
         )
         .subscribe()
-
-      return () => {
-        supabase.removeChannel(channel)
-      }
     }
 
     setupSubscription()
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel)
+      }
+    }
   }, [supabase])
 
   const loadNotifications = async () => {
@@ -82,12 +105,11 @@ export function NotificationsPopover() {
       if (!user) {
         console.log('No authenticated user found')
         setNotifications([])
-        setUnreadCount(0)
         return
       }
 
       // First, check if the notifications table exists by trying to query it
-      const { data: existingNotifications, error: tableError } = await supabase
+      const { error: tableError } = await supabase
         .from('notifications')
         .select('id')
         .limit(1)
@@ -96,7 +118,6 @@ export function NotificationsPopover() {
       if (tableError && tableError.message?.includes('relation "public.notifications" does not exist')) {
         console.warn('Notifications table does not exist yet. Please run the SQL to create it.')
         setNotifications([])
-        setUnreadCount(0)
         return
       }
 
@@ -114,11 +135,9 @@ export function NotificationsPopover() {
       if (error) throw error
 
       setNotifications(data || [])
-      setUnreadCount(data?.filter(n => !n.read).length || 0)
     } catch (error) {
       console.error('Error loading notifications:', error)
       setNotifications([])
-      setUnreadCount(0)
     } finally {
       setIsLoading(false)
     }
@@ -126,10 +145,14 @@ export function NotificationsPopover() {
 
   const markAsRead = async (notificationId: string) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
       const { error } = await supabase
         .from('notifications')
         .update({ read: true })
         .eq('id', notificationId)
+        .eq('user_id', user.id)
 
       if (error) throw error
 
@@ -138,7 +161,6 @@ export function NotificationsPopover() {
           n.id === notificationId ? { ...n, read: true } : n
         )
       )
-      setUnreadCount(prev => Math.max(0, prev - 1))
     } catch (error) {
       console.error('Error marking notification as read:', error)
     }
@@ -160,9 +182,31 @@ export function NotificationsPopover() {
       setNotifications(prev =>
         prev.map(n => ({ ...n, read: true }))
       )
-      setUnreadCount(0)
     } catch (error) {
       console.error('Error marking all notifications as read:', error)
+    }
+  }
+
+  const deleteNotification = async (notificationId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId)
+        .eq('user_id', user.id)
+
+      if (error) throw error
+
+      setNotifications(prev =>
+        prev.filter(notification => notification.id !== notificationId)
+      )
+      toast.success('Notification deleted')
+    } catch (error) {
+      console.error('Error deleting notification:', error)
+      toast.error('Could not delete notification')
     }
   }
 
@@ -175,7 +219,9 @@ export function NotificationsPopover() {
     // Navigate based on notification type
     if (notification.type === 'new_inquiry' || notification.type === 'status_change') {
       if (notification.data?.inquiry_id) {
-        router.push(`/admin/inquiries/${notification.data.inquiry_id}`)
+        router.push(`/admin/inquiries?inquiry=${notification.data.inquiry_id}`)
+      } else {
+        router.push('/admin/inquiries')
       }
     }
     
@@ -260,6 +306,19 @@ export function NotificationsPopover() {
                         {!notification.read && (
                           <Badge variant="default" className="h-2 w-2 rounded-full p-0" />
                         )}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 flex-shrink-0 text-text-muted hover:bg-red-500/10 hover:text-red-400"
+                          aria-label="Delete notification"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            deleteNotification(notification.id)
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
                         {notification.message}

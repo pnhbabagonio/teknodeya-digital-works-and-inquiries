@@ -5,7 +5,6 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,10 +12,10 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { createClient } from '@/lib/supabase/client'
+import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import {
   User,
-  Mail,
   Lock,
   Bell,
   Shield,
@@ -39,12 +38,24 @@ const passwordSchema = z.object({
 
 type ProfileFormData = z.infer<typeof profileSchema>
 type PasswordFormData = z.infer<typeof passwordSchema>
+type SettingsTab = 'profile' | 'notifications' | 'security'
+
+const settingsTabs: Array<{
+  value: SettingsTab
+  label: string
+  icon: typeof User
+}> = [
+  { value: 'profile', label: 'Profile', icon: User },
+  { value: 'notifications', label: 'Notifications', icon: Bell },
+  { value: 'security', label: 'Security', icon: Shield },
+]
 
 interface SettingsFormProps {
   profile: any
 }
 
 export function SettingsForm({ profile }: SettingsFormProps) {
+  const [activeTab, setActiveTab] = useState<SettingsTab>('profile')
   const [isLoading, setIsLoading] = useState(false)
   const [emailNotifications, setEmailNotifications] = useState(true)
   const [pushNotifications, setPushNotifications] = useState(true)
@@ -109,24 +120,76 @@ export function SettingsForm({ profile }: SettingsFormProps) {
     }
   }
 
-  return (
-    <Tabs defaultValue="profile" className="space-y-6">
-      <TabsList>
-        <TabsTrigger value="profile" className="gap-2">
-          <User className="h-4 w-4" />
-          Profile
-        </TabsTrigger>
-        <TabsTrigger value="notifications" className="gap-2">
-          <Bell className="h-4 w-4" />
-          Notifications
-        </TabsTrigger>
-        <TabsTrigger value="security" className="gap-2">
-          <Shield className="h-4 w-4" />
-          Security
-        </TabsTrigger>
-      </TabsList>
+  const handleTabKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    currentTab: SettingsTab
+  ) => {
+    const currentIndex = settingsTabs.findIndex((tab) => tab.value === currentTab)
+    const lastIndex = settingsTabs.length - 1
 
-      <TabsContent value="profile">
+    if (event.key === 'ArrowRight') {
+      event.preventDefault()
+      setActiveTab(settingsTabs[currentIndex === lastIndex ? 0 : currentIndex + 1].value)
+    }
+
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault()
+      setActiveTab(settingsTabs[currentIndex === 0 ? lastIndex : currentIndex - 1].value)
+    }
+
+    if (event.key === 'Home') {
+      event.preventDefault()
+      setActiveTab(settingsTabs[0].value)
+    }
+
+    if (event.key === 'End') {
+      event.preventDefault()
+      setActiveTab(settingsTabs[lastIndex].value)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div
+        role="tablist"
+        aria-label="Settings sections"
+        className="inline-flex h-10 items-center justify-center rounded-md bg-surface p-1 text-text-muted"
+      >
+        {settingsTabs.map((tab) => {
+          const Icon = tab.icon
+          const isActive = activeTab === tab.value
+
+          return (
+            <button
+              key={tab.value}
+              type="button"
+              role="tab"
+              id={`settings-tab-${tab.value}`}
+              aria-selected={isActive}
+              aria-controls={`settings-panel-${tab.value}`}
+              tabIndex={isActive ? 0 : -1}
+              className={cn(
+                'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+                isActive
+                  ? 'bg-primary text-background shadow-sm'
+                  : 'hover:bg-surface/50 hover:text-text-primary'
+              )}
+              onClick={() => setActiveTab(tab.value)}
+              onKeyDown={(event) => handleTabKeyDown(event, tab.value)}
+            >
+              <Icon className="h-4 w-4" />
+              {tab.label}
+            </button>
+          )
+        })}
+      </div>
+
+      <div
+        role="tabpanel"
+        id="settings-panel-profile"
+        aria-labelledby="settings-tab-profile"
+        hidden={activeTab !== 'profile'}
+      >
         <Card>
           <CardHeader>
             <CardTitle>Profile Information</CardTitle>
@@ -175,9 +238,14 @@ export function SettingsForm({ profile }: SettingsFormProps) {
             </form>
           </CardContent>
         </Card>
-      </TabsContent>
+      </div>
 
-      <TabsContent value="notifications">
+      <div
+        role="tabpanel"
+        id="settings-panel-notifications"
+        aria-labelledby="settings-tab-notifications"
+        hidden={activeTab !== 'notifications'}
+      >
         <Card>
           <CardHeader>
             <CardTitle>Notification Preferences</CardTitle>
@@ -242,9 +310,14 @@ export function SettingsForm({ profile }: SettingsFormProps) {
             </div>
           </CardContent>
         </Card>
-      </TabsContent>
+      </div>
 
-      <TabsContent value="security">
+      <div
+        role="tabpanel"
+        id="settings-panel-security"
+        aria-labelledby="settings-tab-security"
+        hidden={activeTab !== 'security'}
+      >
         <Card>
           <CardHeader>
             <CardTitle>Change Password</CardTitle>
@@ -326,7 +399,7 @@ export function SettingsForm({ profile }: SettingsFormProps) {
             </div>
           </CardContent>
         </Card>
-      </TabsContent>
-    </Tabs>
+      </div>
+    </div>
   )
 }

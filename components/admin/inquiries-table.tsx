@@ -25,6 +25,7 @@ import {
   MoreHorizontal,
   ArrowUpDown,
 } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { format } from 'date-fns'
 import { cn, truncateText } from '@/lib/utils'
@@ -52,12 +53,21 @@ export function InquiriesTable() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const inquiryId = searchParams.get('inquiry')
 
   const pageSize = 10
 
   useEffect(() => {
     loadInquiries()
   }, [page, sortField, sortOrder])
+
+  useEffect(() => {
+    if (inquiryId) {
+      loadInquiryById(inquiryId)
+    }
+  }, [inquiryId])
 
   const loadInquiries = async () => {
     setLoading(true)
@@ -114,6 +124,35 @@ export function InquiriesTable() {
   const handleViewInquiry = (inquiry: Inquiry) => {
     setSelectedInquiry(inquiry)
     setModalOpen(true)
+  }
+
+  const loadInquiryById = async (id: string) => {
+    try {
+      const supabase = createClient()
+
+      const { data, error } = await supabase
+        .from('inquiries')
+        .select('*')
+        .eq('id', id)
+        .single()
+
+      if (error) throw error
+
+      if (data) {
+        setSelectedInquiry(data)
+        setModalOpen(true)
+      }
+    } catch (error) {
+      console.error('Error loading inquiry from notification:', error)
+    }
+  }
+
+  const handleModalOpenChange = (open: boolean) => {
+    setModalOpen(open)
+
+    if (!open && inquiryId) {
+      router.replace('/admin/inquiries')
+    }
   }
 
   if (loading && inquiries.length === 0) {
@@ -263,7 +302,7 @@ export function InquiriesTable() {
       <InquiryModal
         inquiry={selectedInquiry}
         open={modalOpen}
-        onOpenChange={setModalOpen}
+        onOpenChange={handleModalOpenChange}
         onUpdate={loadInquiries}
       />
     </>

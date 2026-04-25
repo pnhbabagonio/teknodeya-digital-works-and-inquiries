@@ -1,7 +1,7 @@
 // app/admin/layout.tsx
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
@@ -18,14 +18,6 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { NotificationsPopover } from '@/components/admin/notifications-popover'
 import { createClient } from '@/lib/supabase/client'
@@ -35,6 +27,7 @@ import { toast } from 'sonner'
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/inquiries', label: 'Inquiries', icon: Inbox },
+  { href: '/admin/notifications', label: 'Notifications', icon: Bell },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ]
 
@@ -45,6 +38,8 @@ export default function AdminLayout({
 }) {
   const [collapsed, setCollapsed] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const userMenuRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -70,6 +65,33 @@ export default function AdminLayout({
       router.push(`/admin/inquiries?search=${encodeURIComponent(searchQuery)}`)
     }
   }
+
+  useEffect(() => {
+    if (!userMenuOpen) return
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
+        setUserMenuOpen(false)
+      }
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setUserMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [userMenuOpen])
 
   // If it's the login page, render without the admin layout
   if (isLoginPage) {
@@ -115,19 +137,20 @@ export default function AdminLayout({
 
                 return (
                   <li key={item.href}>
-                    <Link href={item.href}>
-                      <Button
-                        variant="ghost"
-                        className={cn(
-                          'w-full justify-start',
-                          collapsed ? 'px-2' : '',
-                          isActive && 'bg-primary/10 text-primary hover:bg-primary/20'
-                        )}
-                      >
+                    <Button
+                      asChild
+                      variant="ghost"
+                      className={cn(
+                        'w-full justify-start',
+                        collapsed ? 'px-2' : '',
+                        isActive && 'bg-primary/10 text-primary hover:bg-primary/20'
+                      )}
+                    >
+                      <Link href={item.href}>
                         <Icon className={cn('h-5 w-5', collapsed ? 'mx-auto' : 'mr-3')} />
                         {!collapsed && item.label}
-                      </Button>
-                    </Link>
+                      </Link>
+                    </Button>
                   </li>
                 )
               })}
@@ -190,29 +213,61 @@ export default function AdminLayout({
               <NotificationsPopover />
 
               {/* User Menu */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-primary/10 text-primary">
-                        AD
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Admin User</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => router.push('/admin/settings')}>
-                    <User className="mr-2 h-4 w-4" />
-                    Profile Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleLogout} className="text-red-500">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div ref={userMenuRef} className="relative">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="relative h-8 w-8 rounded-full"
+                  aria-haspopup="menu"
+                  aria-expanded={userMenuOpen}
+                  aria-controls="admin-user-menu"
+                  onClick={() => setUserMenuOpen((open) => !open)}
+                >
+                  <span className="sr-only">Open admin user menu</span>
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-primary/10 text-primary">
+                      AD
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+
+                {userMenuOpen && (
+                  <div
+                    id="admin-user-menu"
+                    role="menu"
+                    className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-md border border-white/5 bg-surface p-1 text-text-primary shadow-md"
+                  >
+                    <div className="px-2 py-1.5 text-sm font-semibold text-text-primary">
+                      Admin User
+                    </div>
+                    <div className="-mx-1 my-1 h-px bg-white/5" />
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="relative flex w-full select-none items-center rounded-sm px-2 py-1.5 text-left text-sm outline-none transition-colors hover:bg-primary/10 hover:text-primary focus:bg-primary/10 focus:text-primary"
+                      onClick={() => {
+                        setUserMenuOpen(false)
+                        router.push('/admin/settings')
+                      }}
+                    >
+                      <User className="mr-2 h-4 w-4" />
+                      Profile Settings
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="relative flex w-full select-none items-center rounded-sm px-2 py-1.5 text-left text-sm text-red-500 outline-none transition-colors hover:bg-red-500/10 hover:text-red-400 focus:bg-red-500/10 focus:text-red-400"
+                      onClick={() => {
+                        setUserMenuOpen(false)
+                        handleLogout()
+                      }}
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </header>
