@@ -188,6 +188,26 @@ export function InquiryForm({ initialService }: InquiryFormProps = {}) {
         throw new Error(error.message)
       }
 
+      // Fire-and-forget client confirmation email. We don't want a mail
+      // delivery hiccup to make the user think their inquiry failed.
+      try {
+        const res = await fetch('/api/inquiries/confirmation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: data.email,
+            fullName: data.fullName,
+            referenceNumber: refNumber,
+          }),
+        })
+        if (!res.ok) {
+          const payload = await res.json().catch(() => ({}))
+          console.error('[v0] Confirmation email failed:', payload)
+        }
+      } catch (mailError) {
+        console.error('[v0] Confirmation email request error:', mailError)
+      }
+
       setReferenceNumber(refNumber)
       setSubmitted(true)
       reset()
