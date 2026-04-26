@@ -1,7 +1,7 @@
 // app/admin/layout.tsx
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { NotificationsPopover } from '@/components/admin/notifications-popover'
 import { createClient } from '@/lib/supabase/client'
+import { getAdminAvatarIcon } from '@/lib/admin-avatar-icons'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -31,6 +32,12 @@ const navItems = [
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ]
 
+type AdminProfile = {
+  full_name?: string | null
+  email?: string | null
+  avatar_icon?: string | null
+}
+
 export default function AdminLayout({
   children,
 }: {
@@ -39,10 +46,14 @@ export default function AdminLayout({
   const [collapsed, setCollapsed] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [adminProfile, setAdminProfile] = useState<AdminProfile | null>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
+  const AdminAvatarIcon = getAdminAvatarIcon(adminProfile?.avatar_icon)
+  const adminDisplayName =
+    adminProfile?.full_name || adminProfile?.email || 'Admin User'
 
   // Check if current path is login page
   const isLoginPage = pathname === '/admin/login'
@@ -65,6 +76,54 @@ export default function AdminLayout({
       router.push(`/admin/inquiries?search=${encodeURIComponent(searchQuery)}`)
     }
   }
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadAdminProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (!user) {
+        if (isMounted) setAdminProfile(null)
+        return
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name,email,avatar_icon')
+        .eq('id', user.id)
+        .single()
+
+      if (!isMounted) return
+
+      if (error) {
+        setAdminProfile({
+          email: user.email,
+          full_name: user.user_metadata?.full_name as string | null | undefined,
+        })
+        return
+      }
+
+      setAdminProfile(data)
+    }
+
+    const handleProfileUpdated = (event: Event) => {
+      const { detail } = event as CustomEvent<AdminProfile>
+
+      setAdminProfile((currentProfile) => ({
+        ...currentProfile,
+        ...detail,
+      }))
+    }
+
+    loadAdminProfile()
+    window.addEventListener('admin-profile-updated', handleProfileUpdated)
+
+    return () => {
+      isMounted = false
+      window.removeEventListener('admin-profile-updated', handleProfileUpdated)
+    }
+  }, [supabase])
 
   useEffect(() => {
     if (!userMenuOpen) return
@@ -226,7 +285,7 @@ export default function AdminLayout({
                   <span className="sr-only">Open admin user menu</span>
                   <Avatar className="h-8 w-8">
                     <AvatarFallback className="bg-primary/10 text-primary">
-                      AD
+                      <AdminAvatarIcon className="h-4 w-4" />
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -238,7 +297,7 @@ export default function AdminLayout({
                     className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-md border border-white/5 bg-surface p-1 text-text-primary shadow-md"
                   >
                     <div className="px-2 py-1.5 text-sm font-semibold text-text-primary">
-                      Admin User
+                      {adminDisplayName}
                     </div>
                     <div className="-mx-1 my-1 h-px bg-white/5" />
                     <button

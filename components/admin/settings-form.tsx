@@ -2,6 +2,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -12,6 +13,12 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { createClient } from '@/lib/supabase/client'
+import {
+  adminAvatarIcons,
+  getAdminAvatarIcon,
+  normalizeAdminAvatarIcon,
+  type AdminAvatarIconName,
+} from '@/lib/admin-avatar-icons'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import {
@@ -20,6 +27,7 @@ import {
   Bell,
   Shield,
   Save,
+  Check,
 } from 'lucide-react'
 
 const profileSchema = z.object({
@@ -51,15 +59,25 @@ const settingsTabs: Array<{
 ]
 
 interface SettingsFormProps {
-  profile: any
+  profile: {
+    id: string
+    email: string
+    full_name: string | null
+    avatar_icon?: string | null
+  } | null
 }
 
 export function SettingsForm({ profile }: SettingsFormProps) {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile')
   const [isLoading, setIsLoading] = useState(false)
   const [emailNotifications, setEmailNotifications] = useState(true)
   const [pushNotifications, setPushNotifications] = useState(true)
+  const [selectedAvatarIcon, setSelectedAvatarIcon] = useState<AdminAvatarIconName>(
+    normalizeAdminAvatarIcon(profile?.avatar_icon)
+  )
   const supabase = createClient()
+  const SelectedAvatarIcon = getAdminAvatarIcon(selectedAvatarIcon)
 
   const {
     register: registerProfile,
@@ -82,19 +100,40 @@ export function SettingsForm({ profile }: SettingsFormProps) {
     resolver: zodResolver(passwordSchema),
   })
 
+  const handleAvatarIconChange = (avatarIcon: AdminAvatarIconName) => {
+    setSelectedAvatarIcon(avatarIcon)
+  }
+
   const onProfileSubmit = async (data: ProfileFormData) => {
+    if (!profile?.id) {
+      toast.error('Profile is unavailable')
+      return
+    }
+
     setIsLoading(true)
     try {
       const { error } = await supabase
         .from('profiles')
         .update({
           full_name: data.full_name,
+          avatar_icon: selectedAvatarIcon,
         })
         .eq('id', profile.id)
 
       if (error) throw error
 
+      window.dispatchEvent(
+        new CustomEvent('admin-profile-updated', {
+          detail: {
+            full_name: data.full_name,
+            email: profile.email,
+            avatar_icon: selectedAvatarIcon,
+          },
+        })
+      )
+
       toast.success('Profile updated successfully')
+      router.refresh()
     } catch (error) {
       toast.error('Failed to update profile')
     } finally {
@@ -200,6 +239,44 @@ export function SettingsForm({ profile }: SettingsFormProps) {
           <CardContent>
             <form onSubmit={handleProfileSubmit(onProfileSubmit)} className="space-y-6">
               <div className="space-y-4">
+                <div className="space-y-3">
+                  <Label>Avatar Icon</Label>
+                  <div className="flex flex-col gap-4 rounded-card border border-white/5 bg-background/40 p-4 sm:flex-row sm:items-center">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <SelectedAvatarIcon className="h-8 w-8" />
+                    </div>
+                    <div className="grid flex-1 grid-cols-5 gap-2 sm:grid-cols-10">
+                      {adminAvatarIcons.map((option) => {
+                        const Icon = option.icon
+                        const isSelected = selectedAvatarIcon === option.value
+
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            aria-label={`Use ${option.label} avatar icon`}
+                            aria-pressed={isSelected}
+                            className={cn(
+                              'relative flex h-11 w-11 items-center justify-center rounded-input border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                              isSelected
+                                ? 'border-primary bg-primary text-background shadow-[0_0_18px_rgba(0,186,242,0.25)]'
+                                : 'border-white/10 bg-surface text-text-muted hover:border-primary/60 hover:text-primary'
+                            )}
+                            onClick={() => handleAvatarIconChange(option.value)}
+                          >
+                            <Icon className="h-5 w-5" />
+                            {isSelected && (
+                              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-secondary text-background">
+                                <Check className="h-3 w-3" />
+                              </span>
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="full_name">Full Name</Label>
                   <Input
