@@ -2,7 +2,7 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { NextResponse } from 'next/server'
-import { Resend } from 'resend'
+import nodemailer from 'nodemailer'
 import {
   SIGNATURE_IMAGE_CONTENT_ID,
   buildInquiryConfirmationEmail,
@@ -10,8 +10,6 @@ import {
 
 export const runtime = 'nodejs'
 
-const FROM_ADDRESS =
-  process.env.INQUIRY_FROM_EMAIL || 'Teknodeya <onboarding@resend.dev>'
 const REPLY_TO_ADDRESS =
   process.env.INQUIRY_REPLY_TO_EMAIL || 'pnhbabagonio@gmail.com'
 const SIGNATURE_IMAGE_PATH = join(
@@ -39,15 +37,16 @@ export async function POST(request: Request) {
       )
     }
 
-    if (!process.env.RESEND_API_KEY) {
-      console.error('[v0] Missing RESEND_API_KEY env var')
+    const gmailUser = process.env.GMAIL_USER?.trim()
+    const gmailAppPassword = process.env.GMAIL_APP_PASSWORD?.replace(/\s/g, '')
+
+    if (!gmailUser || !gmailAppPassword) {
+      console.error('[v0] Missing GMAIL_USER or GMAIL_APP_PASSWORD env var')
       return NextResponse.json(
         { error: 'Email service is not configured' },
         { status: 500 }
       )
     }
-
-    const resend = new Resend(process.env.RESEND_API_KEY)
 
     const signatureImage = await getSignatureImage()
 
@@ -57,8 +56,16 @@ export async function POST(request: Request) {
       signatureImageSrc: signatureImage.src,
     })
 
-    const { data, error } = await resend.emails.send({
-      from: FROM_ADDRESS,
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: gmailUser,
+        pass: gmailAppPassword,
+      },
+    })
+
+    const info = await transporter.sendMail({
+      from: process.env.GMAIL_FROM_EMAIL || `Teknodeya <${gmailUser}>`,
       to: email,
       subject,
       html,
@@ -67,15 +74,7 @@ export async function POST(request: Request) {
       attachments: signatureImage.attachments,
     })
 
-    if (error) {
-      console.error('[v0] Resend error:', error)
-      return NextResponse.json(
-        { error: error.message ?? 'Failed to send email' },
-        { status: 502 }
-      )
-    }
-
-    return NextResponse.json({ ok: true, id: data?.id })
+    return NextResponse.json({ ok: true, id: info.messageId })
   } catch (error) {
     console.error('[v0] Confirmation route error:', error)
     const message =
@@ -88,8 +87,8 @@ async function getSignatureImage(): Promise<{
   src: string
   attachments?: Array<{
     filename: string
-    content: string
-    contentId: string
+    content: Buffer
+    cid: string
   }>
 }> {
   try {
@@ -100,8 +99,8 @@ async function getSignatureImage(): Promise<{
       attachments: [
         {
           filename: 'emailsignature.png',
-          content: image.toString('base64'),
-          contentId: SIGNATURE_IMAGE_CONTENT_ID,
+          content: image,
+          cid: SIGNATURE_IMAGE_CONTENT_ID,
         },
       ],
     }
