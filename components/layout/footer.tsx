@@ -25,10 +25,10 @@ const footerLinks = {
 
 const socialLinks = [
   { icon: Facebook, href: 'https://facebook.com/teknodeya', label: 'Facebook' },
-  { icon: Twitter, href: 'https://twitter.com/teknodeya', label: 'Twitter' },
-  { icon: Instagram, href: 'https://instagram.com/teknodeya', label: 'Instagram' },
-  { icon: Linkedin, href: 'https://linkedin.com/company/teknodeya', label: 'LinkedIn' },
-  { icon: Github, href: 'https://github.com/teknodeya', label: 'GitHub' },
+  { icon: Twitter, href: 'https://x.com/Mounshirou', label: 'Twitter' },
+  { icon: Instagram, href: 'https://www.instagram.com/aponiwarlito/', label: 'Instagram' },
+  { icon: Linkedin, href: 'https://www.linkedin.com/in/pnhbabagonio/', label: 'LinkedIn' },
+  { icon: Github, href: 'https://github.com/pnhbabagonio', label: 'GitHub' },
 ]
 
 export function Footer() {

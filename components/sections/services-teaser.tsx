@@ -124,7 +124,7 @@ export function ServicesTeaser() {
                   </CardHeader>
                   <CardContent>
                     <Link
-                      href={`/services/${service.category}`}
+                      href={`/services?category=${service.category}`}
                       className="inline-flex items-center text-sm text-primary hover:text-secondary transition-colors"
                     >
                       Learn more
