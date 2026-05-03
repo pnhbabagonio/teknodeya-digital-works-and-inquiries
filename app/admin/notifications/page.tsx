@@ -23,7 +23,6 @@ export default async function NotificationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-heading font-bold">Notifications</h2>
         <p className="text-text-muted">
           Review, mark, and delete dashboard notifications
         </p>

@@ -21,7 +21,6 @@ export default async function InquiriesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-heading font-bold">Inquiries</h2>
         <p className="text-text-muted">Manage and track all service inquiries</p>
       </div>
 
