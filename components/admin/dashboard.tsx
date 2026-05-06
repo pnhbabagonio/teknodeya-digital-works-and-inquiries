@@ -6,29 +6,43 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   Inbox,
-  Clock,
+  Phone,
   Users,
   CheckCircle,
+  type LucideIcon,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { InquiriesTable } from '@/components/admin/inquiries-table'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
+import {
+  inquiryStatusOptions,
+  normalizeInquiryStatus,
+  type InquiryStatus,
+} from '@/lib/inquiry-status'
 
 interface Stats {
   total: number
-  pending: number
-  inProgress: number
-  completed: number
+  statuses: Record<InquiryStatus, number>
+}
+
+const emptyStatusCounts = (): Record<InquiryStatus, number> =>
+  Object.fromEntries(
+    inquiryStatusOptions.map((status) => [status.value, 0])
+  ) as Record<InquiryStatus, number>
+
+const statusIcons: Record<InquiryStatus, LucideIcon> = {
+  'new-inquiry': Inbox,
+  contacted: Phone,
+  'ongoing-discussion': Users,
+  closed: CheckCircle,
 }
 
 // Use named export
 export function AdminDashboard() {
   const [stats, setStats] = useState<Stats>({
     total: 0,
-    pending: 0,
-    inProgress: 0,
-    completed: 0,
+    statuses: emptyStatusCounts(),
   })
   const [loading, setLoading] = useState(true)
 
@@ -45,14 +59,15 @@ export function AdminDashboard() {
 
       if (error) throw error
 
-      const stats = {
-        total: data.length,
-        pending: data.filter((i) => i.status === 'pending').length,
-        inProgress: data.filter((i) => i.status === 'in-progress').length,
-        completed: data.filter((i) => i.status === 'completed').length,
-      }
+      const statusCounts = emptyStatusCounts()
+      data.forEach((inquiry) => {
+        statusCounts[normalizeInquiryStatus(inquiry.status)] += 1
+      })
 
-      setStats(stats)
+      setStats({
+        total: data.length,
+        statuses: statusCounts,
+      })
     } catch (error) {
       console.error('Error loading stats:', error)
     } finally {
@@ -68,33 +83,19 @@ export function AdminDashboard() {
       color: 'text-primary',
       bg: 'bg-primary/10',
     },
-    {
-      title: 'Pending',
-      value: stats.pending,
-      icon: Clock,
-      color: 'text-yellow-500',
-      bg: 'bg-yellow-500/10',
-    },
-    {
-      title: 'In Progress',
-      value: stats.inProgress,
-      icon: Users,
-      color: 'text-blue-500',
-      bg: 'bg-blue-500/10',
-    },
-    {
-      title: 'Completed',
-      value: stats.completed,
-      icon: CheckCircle,
-      color: 'text-green-500',
-      bg: 'bg-green-500/10',
-    },
+    ...inquiryStatusOptions.map((status) => ({
+      title: status.label,
+      value: stats.statuses[status.value],
+      icon: statusIcons[status.value],
+      color: status.iconClassName,
+      bg: status.statBgClassName,
+    })),
   ]
 
   return (
     <div className="space-y-8">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
         {statCards.map((stat, index) => {
           const Icon = stat.icon
           return (

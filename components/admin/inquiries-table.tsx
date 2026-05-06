@@ -19,8 +19,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
-  ChevronDown,
-  ChevronUp,
   Eye,
   MoreHorizontal,
   ArrowUpDown,
@@ -28,7 +26,8 @@ import {
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { format } from 'date-fns'
-import { cn, truncateText } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+import { getInquiryStatusMeta } from '@/lib/inquiry-status'
 import { InquiryModal } from './inquiry-modal'
 
 interface Inquiry {
@@ -37,7 +36,7 @@ interface Inquiry {
   full_name: string
   email: string
   service_types: string[]
-  status: 'pending' | 'in-progress' | 'completed' | 'cancelled'
+  status: string | null
   created_at: string
 }
 
@@ -106,17 +105,15 @@ export function InquiriesTable() {
     }
   }
 
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      pending: 'bg-yellow-500/10 text-yellow-500',
-      'in-progress': 'bg-blue-500/10 text-blue-500',
-      completed: 'bg-green-500/10 text-green-500',
-      cancelled: 'bg-red-500/10 text-red-500',
-    }
+  const getStatusBadge = (status?: string | null) => {
+    const statusMeta = getInquiryStatusMeta(status)
 
     return (
-      <Badge className={cn('font-normal', variants[status as keyof typeof variants])}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+      <Badge
+        variant="outline"
+        className={cn('font-normal', statusMeta.badgeClassName)}
+      >
+        {statusMeta.label}
       </Badge>
     )
   }

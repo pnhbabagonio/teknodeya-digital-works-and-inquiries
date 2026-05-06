@@ -20,16 +20,13 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import {
-  Calendar,
   Download,
   FileText,
   Clock,
   CheckCircle,
-  XCircle,
   AlertCircle,
   User,
   Mail,
@@ -40,6 +37,12 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import {
+  getInquiryStatusMeta,
+  inquiryStatusOptions,
+  normalizeInquiryStatus,
+  type InquiryStatus,
+} from '@/lib/inquiry-status'
 
 interface InquiryModalProps {
   inquiry: any | null
@@ -48,24 +51,20 @@ interface InquiryModalProps {
   onUpdate: () => void
 }
 
-const statusOptions = [
-  { value: 'pending', label: 'Pending', color: 'yellow' },
-  { value: 'in-progress', label: 'In Progress', color: 'blue' },
-  { value: 'completed', label: 'Completed', color: 'green' },
-  { value: 'cancelled', label: 'Cancelled', color: 'red' },
-]
-
 export function InquiryModal({ inquiry, open, onOpenChange, onUpdate }: InquiryModalProps) {
   const [statusHistory, setStatusHistory] = useState<any[]>([])
   const [updating, setUpdating] = useState(false)
-  const [newStatus, setNewStatus] = useState<string>('')
+  const [currentStatus, setCurrentStatus] = useState<InquiryStatus>('new-inquiry')
+  const [newStatus, setNewStatus] = useState<InquiryStatus>('new-inquiry')
   const [statusNotes, setStatusNotes] = useState('')
   const supabase = createClient()
 
   useEffect(() => {
     if (inquiry?.id) {
+      const normalizedStatus = normalizeInquiryStatus(inquiry.status)
       loadStatusHistory()
-      setNewStatus(inquiry.status)
+      setCurrentStatus(normalizedStatus)
+      setNewStatus(normalizedStatus)
     }
   }, [inquiry])
 
@@ -90,7 +89,7 @@ export function InquiryModal({ inquiry, open, onOpenChange, onUpdate }: InquiryM
   }
 
   const handleStatusUpdate = async () => {
-    if (!inquiry?.id || !newStatus || newStatus === inquiry.status) return
+    if (!inquiry?.id || newStatus === currentStatus) return
 
     setUpdating(true)
     try {
@@ -154,6 +153,7 @@ export function InquiryModal({ inquiry, open, onOpenChange, onUpdate }: InquiryM
       }
 
       toast.success('Status updated successfully')
+      setCurrentStatus(newStatus)
       onUpdate()
       loadStatusHistory()
       setStatusNotes('')
@@ -179,15 +179,17 @@ export function InquiryModal({ inquiry, open, onOpenChange, onUpdate }: InquiryM
   }
 
   const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return <Clock className="h-4 w-4 text-yellow-500" />
-      case 'in-progress':
-        return <AlertCircle className="h-4 w-4 text-blue-500" />
-      case 'completed':
-        return <CheckCircle className="h-4 w-4 text-green-500" />
-      case 'cancelled':
-        return <XCircle className="h-4 w-4 text-red-500" />
+    const statusMeta = getInquiryStatusMeta(status)
+
+    switch (statusMeta.value) {
+      case 'new-inquiry':
+        return <Clock className={cn('h-4 w-4', statusMeta.iconClassName)} />
+      case 'contacted':
+        return <Mail className={cn('h-4 w-4', statusMeta.iconClassName)} />
+      case 'ongoing-discussion':
+        return <AlertCircle className={cn('h-4 w-4', statusMeta.iconClassName)} />
+      case 'closed':
+        return <CheckCircle className={cn('h-4 w-4', statusMeta.iconClassName)} />
       default:
         return null
     }
@@ -203,6 +205,7 @@ export function InquiryModal({ inquiry, open, onOpenChange, onUpdate }: InquiryM
     '>50000': 'More than ₱50,000',
     'not-specified': 'Not specified',
   }
+  const currentStatusMeta = getInquiryStatusMeta(currentStatus)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -210,8 +213,11 @@ export function InquiryModal({ inquiry, open, onOpenChange, onUpdate }: InquiryM
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <span>Inquiry Details</span>
-            <Badge variant={inquiry.status === 'pending' ? 'warning' : inquiry.status === 'in-progress' ? 'info' : inquiry.status === 'completed' ? 'success' : 'destructive'}>
-              {inquiry.status.charAt(0).toUpperCase() + inquiry.status.slice(1)}
+            <Badge
+              variant="outline"
+              className={currentStatusMeta.badgeClassName}
+            >
+              {currentStatusMeta.label}
             </Badge>
           </DialogTitle>
           <DialogDescription>
@@ -358,12 +364,15 @@ export function InquiryModal({ inquiry, open, onOpenChange, onUpdate }: InquiryM
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>New Status</Label>
-              <Select value={newStatus} onValueChange={setNewStatus}>
+              <Select
+                value={newStatus}
+                onValueChange={(value) => setNewStatus(value as InquiryStatus)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  {statusOptions.map((option) => (
+                  {inquiryStatusOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       <div className="flex items-center gap-2">
                         {getStatusIcon(option.value)}
@@ -386,7 +395,7 @@ export function InquiryModal({ inquiry, open, onOpenChange, onUpdate }: InquiryM
           <div className="flex justify-end">
             <Button
               onClick={handleStatusUpdate}
-              disabled={updating || !newStatus || newStatus === inquiry.status}
+              disabled={updating || newStatus === currentStatus}
             >
               {updating ? 'Updating...' : 'Update Status'}
             </Button>
@@ -400,37 +409,44 @@ export function InquiryModal({ inquiry, open, onOpenChange, onUpdate }: InquiryM
             <div className="space-y-4">
               <h3 className="font-semibold">Status History</h3>
               <div className="space-y-3">
-                {statusHistory.map((history, index) => (
-                  <div
-                    key={history.id}
-                    className={cn(
-                      "flex gap-4 p-3 bg-surface/30 rounded",
-                      index === 0 && "border-l-2 border-primary"
-                    )}
-                  >
-                    <div className="flex-shrink-0">
-                      {getStatusIcon(history.status)}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <Badge variant={history.status === 'pending' ? 'warning' : history.status === 'in-progress' ? 'info' : history.status === 'completed' ? 'success' : 'destructive'}>
-                          {history.status.charAt(0).toUpperCase() + history.status.slice(1)}
-                        </Badge>
-                        <span className="text-xs text-text-muted">
-                          {format(new Date(history.created_at), 'MMM d, yyyy h:mm a')}
-                        </span>
+                {statusHistory.map((history, index) => {
+                  const historyStatusMeta = getInquiryStatusMeta(history.status)
+
+                  return (
+                    <div
+                      key={history.id}
+                      className={cn(
+                        'flex gap-4 p-3 bg-surface/30 rounded',
+                        index === 0 && 'border-l-2 border-primary'
+                      )}
+                    >
+                      <div className="flex-shrink-0">
+                        {getStatusIcon(history.status)}
                       </div>
-                      {history.notes && (
-                        <p className="text-sm text-text-muted mt-2">{history.notes}</p>
-                      )}
-                      {history.profiles && (
-                        <p className="text-xs text-text-muted mt-1">
-                          By: {history.profiles.full_name || history.profiles.email}
-                        </p>
-                      )}
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <Badge
+                            variant="outline"
+                            className={historyStatusMeta.badgeClassName}
+                          >
+                            {historyStatusMeta.label}
+                          </Badge>
+                          <span className="text-xs text-text-muted">
+                            {format(new Date(history.created_at), 'MMM d, yyyy h:mm a')}
+                          </span>
+                        </div>
+                        {history.notes && (
+                          <p className="text-sm text-text-muted mt-2">{history.notes}</p>
+                        )}
+                        {history.profiles && (
+                          <p className="text-xs text-text-muted mt-1">
+                            By: {history.profiles.full_name || history.profiles.email}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           </>

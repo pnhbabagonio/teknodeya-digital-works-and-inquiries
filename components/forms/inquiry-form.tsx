@@ -29,6 +29,7 @@ import {
 import { cn, generateReferenceNumber, formatFileSize } from '@/lib/utils'
 import { inquirySchema, type InquiryFormData } from '@/lib/validations/inquiry'
 import { createClient } from '@/lib/supabase/client'
+import { DEFAULT_INQUIRY_STATUS } from '@/lib/inquiry-status'
 
 const serviceOptions = [
   { value: 'web-development', label: 'Web Development' },
@@ -181,6 +182,7 @@ export function InquiryForm({ initialService }: InquiryFormProps = {}) {
         budget_range: data.budgetRange,
         preferred_deadline: data.preferredDeadline,
         attachments: uploadedFiles,
+        status: DEFAULT_INQUIRY_STATUS,
       })
 
       if (error) {
