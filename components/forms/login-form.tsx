@@ -23,8 +23,8 @@ export function LoginForm() {
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: 'admin@teknodeya.ph',
-      password: 'teknodeya2026',
+      email: 'crissostomosimoun@gmail.com',
+      password: 'SC102424',
     },
   })
 
@@ -55,7 +55,7 @@ export function LoginForm() {
         <Input
           {...register('email')}
           type="email"
-          placeholder="admin@teknodeya.ph"
+          placeholder="crissostomosimoun@gmail.com"
           className={errors.email ? 'border-red-500' : ''}
         />
         {errors.email && (
@@ -68,7 +68,7 @@ export function LoginForm() {
         <Input
           {...register('password')}
           type="password"
-          placeholder="••••••••"
+          placeholder="SC102424"
           className={errors.password ? 'border-red-500' : ''}
         />
         {errors.password && (
